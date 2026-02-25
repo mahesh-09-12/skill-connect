@@ -42,7 +42,7 @@
     --secondary: 240 5% 12%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 5% 12%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted-foreground: 240 3.8% 46.1%;
     --accent: 36 100% 55%;
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 62.8% 30.6%;
@@ -59,6 +59,9 @@
 }
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
   * {
     @apply border-border;
   }
