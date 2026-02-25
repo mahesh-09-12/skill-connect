@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -9,13 +10,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { communities } from '@/lib/mock-data';
 import CommunityCard from '@/components/community-card';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Community } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CommunitiesPage() {
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+
+  useEffect(() => {
+    async function fetchCommunities() {
+      try {
+        const res = await fetch('/api/communities');
+        const data = await res.json();
+        setCommunities(data);
+      } catch (error) {
+        console.error("Failed to fetch communities", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCommunities();
+  }, []);
 
   const filteredCommunities = communities.filter(community => {
     return (
@@ -24,7 +43,7 @@ export default function CommunitiesPage() {
     );
   });
   
-  const categories = ['all', 'Course', 'College', 'Professional'];
+  const categories = ['all', ...Array.from(new Set(communities.map(c => c.category)))];
 
   return (
     <div>
@@ -54,25 +73,31 @@ export default function CommunitiesPage() {
         </Select>
       </div>
 
-      <motion.div
-        layout
-        className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
-      >
-        <AnimatePresence>
-          {filteredCommunities.map((community) => (
-             <motion.div
-             key={community.id}
-             layout
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             exit={{ opacity: 0 }}
-             transition={{ duration: 0.3 }}
-           >
-              <CommunityCard community={community} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
+      {loading ? (
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[400px] w-full" />)}
+        </div>
+      ) : (
+        <motion.div
+            layout
+            className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
+        >
+            <AnimatePresence>
+            {filteredCommunities.map((community) => (
+                <motion.div
+                key={community.id}
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+            >
+                <CommunityCard community={community} />
+                </motion.div>
+            ))}
+            </AnimatePresence>
+        </motion.div>
+      )}
     </div>
   );
 }

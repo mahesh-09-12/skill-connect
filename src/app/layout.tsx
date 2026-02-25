@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -5,6 +6,7 @@ import { cn } from "@/lib/utils";
 import Header from "@/components/layout/header";
 import { Toaster } from "@/components/ui/toaster";
 import Footer from "@/components/layout/footer";
+import { UserProvider } from "@/hooks/use-user";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -26,12 +28,14 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className={cn("min-h-screen bg-background font-body antialiased", inter.variable)}>
-        <div className="relative flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
-        <Toaster />
+        <UserProvider>
+            <div className="relative flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            </div>
+            <Toaster />
+        </UserProvider>
       </body>
     </html>
   );

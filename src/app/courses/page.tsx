@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -9,14 +10,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { courses } from '@/lib/mock-data';
 import CourseCard from '@/components/course-card';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Course } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CoursesPage() {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [languageFilter, setLanguageFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState('all');
+
+  useEffect(() => {
+    async function fetchCourses() {
+      try {
+        const res = await fetch('/api/courses');
+        const data = await res.json();
+        setCourses(data);
+      } catch (error) {
+        console.error("Failed to fetch courses", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCourses();
+  }, []);
 
   const filteredCourses = courses.filter(course => {
     return (
@@ -70,25 +89,31 @@ export default function CoursesPage() {
         </Select>
       </div>
 
-      <motion.div
-        layout
-        className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
-      >
-        <AnimatePresence>
-          {filteredCourses.map((course) => (
-            <motion.div
-              key={course.id}
-              layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <CourseCard course={course} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
+      {loading ? (
+         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[400px] w-full" />)}
+        </div>
+      ) : (
+        <motion.div
+            layout
+            className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
+        >
+            <AnimatePresence>
+            {filteredCourses.map((course) => (
+                <motion.div
+                key={course.id}
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                >
+                <CourseCard course={course} />
+                </motion.div>
+            ))}
+            </AnimatePresence>
+        </motion.div>
+      )}
     </div>
   );
 }

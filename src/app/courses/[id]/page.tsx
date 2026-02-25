@@ -1,6 +1,7 @@
+
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { courses, communities } from '@/lib/mock-data';
+import prisma from '@/lib/prisma';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,9 +16,34 @@ import {
 import { ArrowRight, CheckCircle, Clock, Users } from 'lucide-react';
 import Link from 'next/link';
 
-export default function CourseDetailPage({ params }: { params: { id: string } }) {
-  const course = courses.find((c) => c.id === params.id);
-  const community = communities[0]; // Mock community
+async function getCourse(id: string) {
+    const course = await prisma.course.findUnique({
+        where: { id },
+        include: {
+            instructor: true,
+            modules: {
+                include: {
+                    lessons: true,
+                },
+            },
+        },
+    });
+    return course;
+}
+
+async function getCommunityForCourse(courseId: string) {
+    // This is a placeholder logic. You might want to have a direct link 
+    // between course and community. For now, let's find one.
+    const community = await prisma.community.findFirst();
+    return community;
+}
+
+
+export default async function CourseDetailPage({ params }: { params: { id: string } }) {
+  const course = await getCourse(params.id);
+  
+  // A real implementation would link a course to a community
+  const community = await getCommunityForCourse(params.id);
 
   if (!course) {
     notFound();
@@ -91,6 +117,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
             </TabsContent>
 
             <TabsContent value="community">
+            {community ? (
               <Card>
                 <CardHeader>
                   <CardTitle>Community Preview</CardTitle>
@@ -109,6 +136,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                   </div>
                 </CardContent>
               </Card>
+            ) : <p>No community associated with this course yet.</p>}
             </TabsContent>
           </Tabs>
         </div>
@@ -120,21 +148,23 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
             </CardHeader>
             <CardContent className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={course.instructor.avatarUrl} />
+                <AvatarImage src={"https://picsum.photos/seed/user1/100/100"} />
                 <AvatarFallback>{course.instructor.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div>
                 <h3 className="font-semibold">{course.instructor.name}</h3>
-                <p className="text-sm text-muted-foreground">{course.instructor.title}</p>
+                 <p className="text-sm text-muted-foreground">Lead Instructor</p>
               </div>
             </CardContent>
           </Card>
           <Button size="lg" className="w-full">Join Course</Button>
-          <Button asChild size="lg" variant="outline" className="w-full">
-            <Link href={`/communities/${community.id}`}>
-              Go to Community <ArrowRight className="ml-2 h-4 w-4"/>
-            </Link>
-          </Button>
+          {community && (
+            <Button asChild size="lg" variant="outline" className="w-full">
+                <Link href={`/communities/${community.id}`}>
+                Go to Community <ArrowRight className="ml-2 h-4 w-4"/>
+                </Link>
+            </Button>
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
+
 import { notFound } from 'next/navigation';
-import { communities, posts, users } from '@/lib/mock-data';
+import prisma from '@/lib/prisma';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,22 +9,44 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import PostCard from '@/components/post-card';
 import {
-  BarChart,
   Book,
-  BotMessageSquare,
   Info,
   Trophy,
   Users,
 } from 'lucide-react';
 
-export default function CommunityDetailPage({ params }: { params: { id: string } }) {
-  const community = communities.find((c) => c.id === params.id);
+async function getCommunity(id: string) {
+    const community = await prisma.community.findUnique({
+        where: { id },
+        include: {
+            posts: {
+                include: {
+                    author: true,
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            },
+        }
+    });
+    return community;
+}
+
+async function getTopContributors(communityId: string) {
+    // Placeholder: This would require a more complex query to determine top contributors
+    const users = await prisma.user.findMany({ take: 3 });
+    return users.map(user => ({...user, title: "Contributor"}));
+}
+
+export default async function CommunityDetailPage({ params }: { params: { id: string } }) {
+  const community = await getCommunity(params.id);
 
   if (!community) {
     notFound();
   }
 
-  const topContributors = users.slice(0, 3);
+  const topContributors = await getTopContributors(params.id);
+  const loggedInUser = await prisma.user.findFirst(); // Placeholder for logged-in user
 
   return (
     <div className="mx-auto w-full">
@@ -81,8 +104,8 @@ export default function CommunityDetailPage({ params }: { params: { id: string }
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
                   <Avatar>
-                    <AvatarImage src={users[0].avatarUrl} />
-                    <AvatarFallback>{users[0].name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={"https://picsum.photos/seed/user1/100/100"} />
+                    <AvatarFallback>{loggedInUser?.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="w-full space-y-2">
                     <Textarea placeholder="Share something with the community..." />
@@ -92,7 +115,7 @@ export default function CommunityDetailPage({ params }: { params: { id: string }
               </CardContent>
             </Card>
             <div className="flex flex-col gap-6">
-                {posts.map((post) => (
+                {community.posts.map((post) => (
                     <PostCard key={post.id} post={post} />
                 ))}
             </div>
@@ -110,7 +133,7 @@ export default function CommunityDetailPage({ params }: { params: { id: string }
                 {topContributors.map((user) => (
                   <div key={user.id} className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatarUrl} />
+                      <AvatarImage src={"https://picsum.photos/seed/user1/100/100"} />
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
@@ -134,6 +157,7 @@ export default function CommunityDetailPage({ params }: { params: { id: string }
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Online</span>
                   <span className="font-semibold">
+                    {/* Placeholder for online count */}
                     {Math.floor(community.memberCount / 20).toLocaleString()}
                   </span>
                 </div>

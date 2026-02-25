@@ -14,212 +14,195 @@ enum Role {
 }
 
 model User {
-  id                   String             @id @default(cuid())
-  email                String             @unique
-  password             String
-  name                 String?
-  role                 Role               @default(LEARNER)
-  coins                Int                @default(0)
-  streak               Int                @default(0)
-  lastLogin            DateTime?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-  courses              Course[]
-  enrollments          Enrollment[]
+  id                  String              @id @default(cuid())
+  name                String
+  email               String              @unique
+  password            String
+  role                Role                @default(LEARNER)
+  coinBalance         Int                 @default(100)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  courses             Course[]
+  enrollments         Enrollment[]
   communityMemberships CommunityMember[]
-  posts                Post[]
-  comments             Comment[]
-  coinTransactions     CoinTransaction[]
-  quizAttempts         QuizAttempt[]
-  badges               UserBadge[]
-  sentRequests         SkillSwapRequest[] @relation("sentRequests")
-  receivedRequests     SkillSwapRequest[] @relation("receivedRequests")
-  skillSwapSessionsAsUser1 SkillSwapSession[] @relation("user1")
-  skillSwapSessionsAsUser2 SkillSwapSession[] @relation("user2")
-  aiUsageLogs          AIUsageLog[]
-  leaderboardEntry     Leaderboard?
+  posts               Post[]
+  comments            Comment[]
+  coinTransactions    CoinTransaction[]
+  quizAttempts        QuizAttempt[]
+  badges              Badge[]
+  skillSwapRequests   SkillSwapRequest[]  @relation("userRequests")
+  skillSwapSessions   SkillSwapSession[]  @relation("userSessions")
+  createdCommunities  Community[]         @relation("createdBy")
 }
 
 model Course {
   id          String       @id @default(cuid())
   title       String
   description String       @db.Text
-  creatorId   String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  creator     User         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  language    String
+  level       String
+  thumbnailUrl String
+  instructor  User         @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  instructorId String
   modules     Module[]
   enrollments Enrollment[]
-  community   Community?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model Module {
-  id       String   @id @default(cuid())
-  title    String
-  courseId String
-  order    Int
-  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons  Lesson[]
-
-  @@unique([courseId, order])
+  id        String   @id @default(cuid())
+  title     String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId  String
+  lessons   Lesson[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Lesson {
-  id       String   @id @default(cuid())
-  title    String
-  content  String   @db.Text
-  moduleId String
-  order    Int
-  module   Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  quizzes  Quiz[]
-
-  @@unique([moduleId, order])
+  id        String      @id @default(cuid())
+  title     String
+  duration  String
+  content   String      @db.Text
+  module    Module      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId  String
+  quizzes   Quiz[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 }
 
 model Enrollment {
-  id         String   @id @default(cuid())
-  userId     String
-  courseId   String
-  enrolledAt DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId  String
+  createdAt DateTime @default(now())
 
   @@unique([userId, courseId])
 }
 
 model Community {
-  id          String            @id @default(cuid())
-  name        String            @unique
-  description String
-  courseId    String            @unique
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  course      Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  members     CommunityMember[]
-  posts       Post[]
+  id           String            @id @default(cuid())
+  name         String
+  description  String
+  memberCount  Int               @default(0)
+  category     String
+  thumbnailUrl String
+  creator      User              @relation("createdBy", fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId    String
+  members      CommunityMember[]
+  posts        Post[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 }
 
 model CommunityMember {
   id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   communityId String
   joinedAt    DateTime  @default(now())
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
   @@unique([userId, communityId])
 }
 
 model Post {
   id          String    @id @default(cuid())
-  title       String
   content     String    @db.Text
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId    String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   communityId String
+  comments    Comment[]
+  likes       Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  comments    Comment[]
 }
 
 model Comment {
   id        String   @id @default(cuid())
   content   String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId  String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model CoinTransaction {
-  id          String   @id @default(cuid())
-  userId      String
-  amount      Int
-  description String
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  type      String // EARN or SPEND
+  amount    Int
+  reason    String
+  createdAt DateTime @default(now())
 }
 
 model Quiz {
-  id        String      @id @default(cuid())
+  id        String        @id @default(cuid())
+  lesson    Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   lessonId  String
-  title     String
-  questions Json
-  createdAt DateTime    @default(now())
-  lesson    Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions Json // { question: string, options: string[], answer: string }[]
   attempts  QuizAttempt[]
+  createdAt DateTime      @default(now())
 }
 
 model QuizAttempt {
-  id          String   @id @default(cuid())
-  userId      String
-  quizId      String
-  score       Float
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId    String
+  score     Int
   completedAt DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
 }
 
 model Badge {
-  id          String      @id @default(cuid())
-  name        String      @unique
+  id          String @id @default(cuid())
+  name        String
   description String
-  iconUrl     String
-  users       UserBadge[]
-}
-
-model UserBadge {
-  id        String   @id @default(cuid())
-  userId    String
-  badgeId   String
-  awardedAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, badgeId])
+  icon        String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  createdAt   DateTime @default(now())
 }
 
 model Leaderboard {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  points    Int      @default(0)
-  rank      Int
+  id        String @id @default(cuid())
+  userId    String @unique
+  courseId  String @unique
+  points    Int
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SkillSwapRequest {
-  id             String   @id @default(cuid())
-  requesterId    String
-  responderId    String
-  skillOffered   String
-  skillRequested String
-  status         String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  requester      User     @relation("sentRequests", fields: [requesterId], references: [id], onDelete: Cascade)
-  responder      User     @relation("receivedRequests", fields: [responderId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  requester   User     @relation("userRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  requesterId String
+  skillToTeach String
+  skillToLearn String
+  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt   DateTime @default(now())
 }
 
 model SkillSwapSession {
-  id          String   @id @default(cuid())
-  user1Id     String
-  user2Id     String
-  skill       String
-  completedAt DateTime
-  user1       User     @relation("user1", fields: [user1Id], references: [id], onDelete: Cascade)
-  user2       User     @relation("user2", fields: [user2Id], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  user       User     @relation("userSessions", fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  requestId  String
+  completedAt DateTime @default(now())
 }
 
 model AIUsageLog {
-  id             String   @id @default(cuid())
-  userId         String
-  feature        String
-  promptTokens   Int
-  responseTokens Int
-  createdAt      DateTime @default(now())
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  userId    String
+  feature   String
+  input     String   @db.Text
+  output    String   @db.Text
+  createdAt DateTime @default(now())
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { motion } from 'framer-motion';
@@ -7,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Post } from '@/lib/types';
 import { Heart, MessageSquare, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 
 interface PostCardProps {
   post: Post;
@@ -21,6 +23,7 @@ export default function PostCard({ post }: PostCardProps) {
   };
 
   const handleLike = () => {
+    // In a real app, this would be an API call
     setIsLiked(!isLiked);
   };
 
@@ -30,12 +33,14 @@ export default function PostCard({ post }: PostCardProps) {
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-4">
             <Avatar>
-              <AvatarImage src={post.author.avatarUrl} />
+              <AvatarImage src={"https://picsum.photos/seed/user1/100/100"} />
               <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
               <p className="font-semibold">{post.author.name}</p>
-              <p className="text-sm text-muted-foreground">{post.timestamp}</p>
+              <p className="text-sm text-muted-foreground">
+                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+              </p>
             </div>
           </div>
           <Button variant="ghost" size="icon">
@@ -54,7 +59,7 @@ export default function PostCard({ post }: PostCardProps) {
           </motion.div>
           <Button variant="ghost" size="sm">
             <MessageSquare className="mr-2 h-4 w-4" />
-            {post.comments}
+            {post.comments.length}
           </Button>
         </CardFooter>
       </Card>
