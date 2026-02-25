@@ -25,10 +25,16 @@ export default function CommunitiesPage() {
     async function fetchCommunities() {
       try {
         const res = await fetch('/api/communities');
-        const data = await res.json();
-        setCommunities(data);
+        if (res.ok) {
+          const data = await res.json();
+          setCommunities(data);
+        } else {
+          console.error("Failed to fetch communities");
+          setCommunities([]);
+        }
       } catch (error) {
         console.error("Failed to fetch communities", error);
+        setCommunities([]);
       } finally {
         setLoading(false);
       }
@@ -36,14 +42,14 @@ export default function CommunitiesPage() {
     fetchCommunities();
   }, []);
 
-  const filteredCommunities = communities.filter(community => {
+  const filteredCommunities = Array.isArray(communities) ? communities.filter(community => {
     return (
       community.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (categoryFilter === 'all' || community.category === categoryFilter)
     );
-  });
+  }) : [];
   
-  const categories = ['all', ...Array.from(new Set(communities.map(c => c.category)))];
+  const categories = ['all', ...Array.from(new Set(Array.isArray(communities) ? communities.map(c => c.category) : []))];
 
   return (
     <div>
