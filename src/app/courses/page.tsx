@@ -28,9 +28,10 @@ export default function CoursesPage() {
         const res = await fetch('/api/courses');
         if (res.ok) {
             const data = await res.json();
-            setCourses(data);
+            setCourses(Array.isArray(data) ? data : []);
         } else {
-            console.error("Failed to fetch courses");
+            const errorData = await res.json().catch(() => null);
+            console.error("Failed to fetch courses:", res.status, errorData?.message || res.statusText);
             setCourses([]);
         }
       } catch (error) {
@@ -43,15 +44,15 @@ export default function CoursesPage() {
     fetchCourses();
   }, []);
 
-  const filteredCourses = Array.isArray(courses) ? courses.filter(course => {
+  const filteredCourses = courses.filter(course => {
     return (
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (languageFilter === 'all' || course.language === languageFilter) &&
       (levelFilter === 'all' || course.level === levelFilter)
     );
-  }) : [];
+  });
 
-  const languages = ['all', ...Array.from(new Set(Array.isArray(courses) ? courses.map(c => c.language): []))];
+  const languages = ['all', ...Array.from(new Set(courses.map(c => c.language)))];
   const levels = ['all', 'Beginner', 'Intermediate', 'Advanced'];
 
   return (
