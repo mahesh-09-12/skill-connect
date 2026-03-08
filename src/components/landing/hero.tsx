@@ -1,4 +1,3 @@
-
 'use client';
 
 import { motion } from 'framer-motion';
@@ -45,7 +44,7 @@ export default function Hero() {
           >
             <motion.div variants={itemVariants}>
               <Badge variant="secondary" className="py-1 px-3">
-                <Sparkles className="mr-2 h-3.5 w-3.5 text-accent" />
+                <Sparkles className="mr-2 h-3.5 w-3.5 text-primary" />
                 Now in Public Beta
               </Badge>
             </motion.div>
@@ -74,7 +73,7 @@ export default function Hero() {
                   Explore Courses <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="w-full sm:w-auto px-8 h-12 text-base font-bold">
+              <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto px-8 h-12 text-base font-bold border bg-muted text-foreground hover:bg-muted/80 transition-colors">
                 <Link href="/communities">Join Community</Link>
               </Button>
             </motion.div>

@@ -1,4 +1,3 @@
-
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import Image from 'next/image';
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from '@/components/ui/badge';
 import PostCard from '@/components/post-card';
 import {
   Book,
@@ -15,6 +15,7 @@ import {
   Trophy,
   Users,
   MessageSquare,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 async function getCommunity(id: string) {
@@ -72,7 +73,7 @@ export default async function CommunityDetailPage({ params }: { params: { id: st
                 {community.description}
               </p>
             </div>
-            <Button size="lg" className="w-full sm:w-auto shadow-lg shadow-primary/20">
+            <Button size="lg" variant="secondary" className="w-full sm:w-auto font-bold border bg-muted text-foreground hover:bg-muted/80 shadow-lg">
               Join Community
             </Button>
           </div>
@@ -172,7 +173,7 @@ function CreatePostCard({ user }: { user: any }) {
             <div className="flex justify-between items-center pt-2 border-t">
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" className="text-muted-foreground h-8">
-                  <Image className="h-4 w-4 mr-2" /> Photo
+                  <ImageIcon className="h-4 w-4 mr-2" /> Photo
                 </Button>
               </div>
               <Button size="sm" className="px-6">Post</Button>
