@@ -1,5 +1,6 @@
-
 'use client'
+
+import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/use-user';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Coins, BookOpen, Users, Trophy, ChevronRight, Clock, Star } from 'lucide-react';
@@ -7,11 +8,53 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
+
+interface DashboardData {
+  stats: {
+    courseCount: number;
+    communityCount: number;
+    streak: number;
+    rank: string;
+  };
+  enrolledCourses: {
+    id: string;
+    title: string;
+    progress: number;
+    nextLesson?: string;
+  }[];
+  activities: {
+    text: string;
+    date: string;
+    type: string;
+  }[];
+}
 
 export default function DashboardPage() {
-    const { user, isLoading } = useUser();
+    const { user, isLoading: userLoading } = useUser();
+    const [data, setData] = useState<DashboardData | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    if (isLoading) {
+    useEffect(() => {
+        if (user) {
+            async function fetchStats() {
+                try {
+                    const res = await fetch('/api/dashboard/stats');
+                    if (res.ok) {
+                        const statsData = await res.json();
+                        setData(statsData);
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch dashboard stats", error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+            fetchStats();
+        }
+    }, [user]);
+
+    if (userLoading || (user && loading)) {
         return (
           <div className="space-y-8">
             <div className="space-y-2">
@@ -20,6 +63,14 @@ export default function DashboardPage() {
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full" />)}
+            </div>
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
+              <div className="lg:col-span-8 space-y-6">
+                 <Skeleton className="h-64 w-full" />
+              </div>
+              <div className="lg:col-span-4">
+                 <Skeleton className="h-96 w-full" />
+              </div>
             </div>
           </div>
         );
@@ -54,28 +105,28 @@ export default function DashboardPage() {
             <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <StatsCard 
                   title="Courses Joined" 
-                  value="4" 
+                  value={data?.stats.courseCount || 0} 
                   icon={BookOpen} 
                   color="text-blue-500" 
                   bg="bg-blue-500/10" 
                 />
                 <StatsCard 
                   title="Communities" 
-                  value="2" 
+                  value={data?.stats.communityCount || 0} 
                   icon={Users} 
                   color="text-purple-500" 
                   bg="bg-purple-500/10" 
                 />
                 <StatsCard 
                   title="Current Streak" 
-                  value="5 Days" 
+                  value={`${data?.stats.streak || 0} Days`} 
                   icon={Star} 
                   color="text-orange-500" 
                   bg="bg-orange-500/10" 
                 />
                 <StatsCard 
                   title="Global Rank" 
-                  value="#142" 
+                  value={data?.stats.rank || "N/A"} 
                   icon={Trophy} 
                   color="text-green-500" 
                   bg="bg-green-500/10" 
@@ -84,12 +135,38 @@ export default function DashboardPage() {
 
             <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
               <div className="lg:col-span-8 space-y-6">
-                {user.role === 'LEARNER' && <LearnerDashboard />}
+                {user.role === 'LEARNER' && (
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-bold">Your Learning Progress</h2>
+                    <div className="grid gap-4">
+                      {data?.enrolledCourses.length === 0 ? (
+                        <Card>
+                          <CardContent className="p-10 text-center space-y-4">
+                            <p className="text-muted-foreground">You haven't enrolled in any courses yet.</p>
+                            <Button asChild variant="outline">
+                              <Link href="/courses">Explore Courses</Link>
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        data?.enrolledCourses.map(course => (
+                          <CourseProgressCard 
+                            key={course.id}
+                            id={course.id}
+                            title={course.title} 
+                            progress={course.progress} 
+                            nextLesson={course.nextLesson || "Next module"} 
+                          />
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
                 {user.role === 'CREATOR' && <CreatorDashboard />}
                 {user.role === 'ADMIN' && <AdminDashboard />}
               </div>
               <div className="lg:col-span-4 space-y-6">
-                <ActivitySidebar />
+                <ActivitySidebar activities={data?.activities || []} />
               </div>
             </div>
         </div>
@@ -114,27 +191,7 @@ function StatsCard({ title, value, icon: Icon, color, bg }: any) {
   );
 }
 
-function LearnerDashboard() {
-    return (
-      <div className="space-y-4">
-        <h2 className="text-xl font-bold">Your Learning Progress</h2>
-        <div className="grid gap-4">
-          <CourseProgressCard 
-            title="React Advanced Patterns" 
-            progress={65} 
-            nextLesson="HOC vs Hooks" 
-          />
-          <CourseProgressCard 
-            title="UI/UX Design Masterclass" 
-            progress={22} 
-            nextLesson="Color Theory 101" 
-          />
-        </div>
-      </div>
-    );
-}
-
-function CourseProgressCard({ title, progress, nextLesson }: any) {
+function CourseProgressCard({ title, progress, nextLesson, id }: any) {
   return (
     <Card>
       <CardContent className="p-4 sm:p-6">
@@ -143,7 +200,7 @@ function CourseProgressCard({ title, progress, nextLesson }: any) {
             <h4 className="font-bold text-lg">{title}</h4>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span>Next: {nextLesson}</span>
+              <span>{nextLesson}</span>
             </div>
             <div className="pt-2">
               <div className="flex justify-between text-xs mb-1">
@@ -153,8 +210,10 @@ function CourseProgressCard({ title, progress, nextLesson }: any) {
               <Progress value={progress} className="h-2" />
             </div>
           </div>
-          <Button className="w-full sm:w-auto">
-            Continue <ChevronRight className="ml-1 h-4 w-4" />
+          <Button asChild className="w-full sm:w-auto">
+            <Link href={`/courses/${id}`}>
+                Continue <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
           </Button>
         </div>
       </CardContent>
@@ -162,7 +221,7 @@ function CourseProgressCard({ title, progress, nextLesson }: any) {
   );
 }
 
-function ActivitySidebar() {
+function ActivitySidebar({ activities }: { activities: any[] }) {
   return (
     <Card>
       <CardHeader>
@@ -170,20 +229,24 @@ function ActivitySidebar() {
         <CardDescription>Stay up to date with your tribe</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {[
-          { text: "Earned 10 coins for Daily Login", date: "2 hours ago" },
-          { text: "New post in React Community", date: "5 hours ago" },
-          { text: "Completed lesson: Introduction to Next.js", date: "Yesterday" }
-        ].map((item, i) => (
-          <div key={i} className="flex gap-4">
-            <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium leading-none">{item.text}</p>
-              <p className="text-xs text-muted-foreground">{item.date}</p>
+        {activities.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4">No recent activity found.</p>
+        ) : (
+          activities.map((item, i) => (
+            <div key={i} className="flex gap-4">
+              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium leading-tight">{item.text}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(item.date), { addSuffix: true })}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
-        <Button variant="ghost" className="w-full text-primary text-xs h-8">View All Activity</Button>
+          ))
+        )}
+        <Button variant="ghost" asChild className="w-full text-primary text-xs h-8">
+            <Link href="/dashboard/wallet">View Coin History</Link>
+        </Button>
       </CardContent>
     </Card>
   );

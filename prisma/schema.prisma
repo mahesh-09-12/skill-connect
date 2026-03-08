@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -19,29 +19,23 @@ enum TransactionType {
 }
 
 model User {
-  id              String            @id @default(cuid())
-  name            String
-  email           String            @unique
-  password        String
-  role            Role              @default(LEARNER)
-  coinBalance     Int               @default(100)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  
-  // Relations
-  authoredCourses Course[]          @relation("CourseInstructor")
-  enrollments     Enrollment[]
-  posts           Post[]
-  comments        Comment[]
-  coinTransactions CoinTransaction[]
-  quizAttempts    QuizAttempt[]
-  communityMemberships CommunityMember[]
-  
-  // SkillSwap relations
-  skillSwapTo     SkillSwapRequest[] @relation("TeachSkill")
-  skillSwapFrom   SkillSwapRequest[] @relation("LearnSkill")
-  skillSwapSessionsAsTeacher SkillSwapSession[] @relation("TeacherSession")
-  skillSwapSessionsAsLearner SkillSwapSession[] @relation("LearnerSession")
+  id               String            @id @default(cuid())
+  name             String
+  email            String            @unique
+  password         String
+  role             Role              @default(LEARNER)
+  coinBalance      Int               @default(100)
+  streak           Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  enrollments      Enrollment[]
+  communities      CommunityMember[]
+  posts            Post[]
+  comments         Comment[]
+  transactions     CoinTransaction[]
+  quizAttempts     QuizAttempt[]
+  lessonCompletions LessonCompletion[]
+  badges           Badge[]
 }
 
 model Course {
@@ -49,59 +43,59 @@ model Course {
   title         String
   description   String       @db.Text
   thumbnailUrl  String
-  level         String       // Beginner, Intermediate, Advanced
+  priceInCoins  Int          @default(50)
+  level         String
   language      String
   instructorId  String
-  instructor    User         @relation("CourseInstructor", fields: [instructorId], references: [id])
+  instructor    User         @relation(fields: [instructorId], references: [id])
   modules       Module[]
   enrollments   Enrollment[]
-  priceInCoins  Int          @default(0)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 }
 
 model Module {
-  id       String   @id @default(cuid())
-  title    String
-  courseId String
-  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons  Lesson[]
-  order    Int      @default(0)
+  id        String   @id @default(cuid())
+  title     String
+  order     Int
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons   Lesson[]
 }
 
 model Lesson {
-  id        String @id @default(cuid())
-  title     String
-  content   String @db.Text
-  duration  String
-  moduleId  String
-  module    Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  order     Int    @default(0)
+  id          String             @id @default(cuid())
+  title       String
+  content     String             @db.Text
+  duration    String
+  order       Int
+  moduleId    String
+  module      Module             @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  completions LessonCompletion[]
 }
 
 model Enrollment {
   id        String   @id @default(cuid())
   userId    String
   courseId  String
+  progress  Int      @default(0)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  progress  Int      @default(0)
-  enrolledAt DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([userId, courseId])
 }
 
 model Community {
-  id          String   @id @default(cuid())
-  name        String
-  description String   @db.Text
+  id           String            @id @default(cuid())
+  name         String
+  description  String            @db.Text
+  category     String
   thumbnailUrl String
-  category    String
-  memberCount Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  posts       Post[]
-  members     CommunityMember[]
+  memberCount  Int               @default(0)
+  members      CommunityMember[]
+  posts        Post[]
+  createdAt    DateTime          @default(now())
 }
 
 model CommunityMember {
@@ -110,8 +104,7 @@ model CommunityMember {
   communityId String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  role        String    @default("MEMBER")
-  joinedAt    DateTime  @default(now())
+  createdAt   DateTime  @default(now())
 
   @@unique([userId, communityId])
 }
@@ -119,11 +112,11 @@ model CommunityMember {
 model Post {
   id          String    @id @default(cuid())
   content     String    @db.Text
-  authorId    String
-  author      User      @relation(fields: [authorId], references: [id])
-  communityId String
-  community   Community @relation(fields: [communityId], references: [id])
   likes       Int       @default(0)
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   comments    Comment[]
   createdAt   DateTime  @default(now())
 }
@@ -132,8 +125,8 @@ model Comment {
   id        String   @id @default(cuid())
   content   String   @db.Text
   authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
   postId    String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
@@ -148,33 +141,12 @@ model CoinTransaction {
   createdAt DateTime        @default(now())
 }
 
-model SkillSwapRequest {
-  id             String   @id @default(cuid())
-  teacherId      String
-  learnerId      String
-  skillToTeach   String
-  skillToLearn   String
-  status         String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, COMPLETED
-  teacher        User     @relation("TeachSkill", fields: [teacherId], references: [id])
-  learner        User     @relation("LearnSkill", fields: [learnerId], references: [id])
-  createdAt      DateTime @default(now())
-}
-
-model SkillSwapSession {
-  id          String   @id @default(cuid())
-  teacherId   String
-  learnerId   String
-  teacher     User     @relation("TeacherSession", fields: [teacherId], references: [id])
-  learner     User     @relation("LearnerSession", fields: [learnerId], references: [id])
-  completedAt DateTime @default(now())
-}
-
 model Quiz {
-  id        String   @id @default(cuid())
-  title     String
-  lessonId  String
-  questions String   @db.Text // Store as JSON string
-  attempts  QuizAttempt[]
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  questions   Json
+  attempts    QuizAttempt[]
 }
 
 model QuizAttempt {
@@ -182,7 +154,28 @@ model QuizAttempt {
   userId    String
   quizId    String
   score     Int
-  user      User     @relation(fields: [userId], references: [id])
-  quiz      Quiz     @relation(fields: [quizId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+model LessonCompletion {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, lessonId])
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  icon        String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
 }
