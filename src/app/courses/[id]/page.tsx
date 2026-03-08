@@ -13,9 +13,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { ArrowRight, CheckCircle, Clock, Users, Play, ShieldCheck, Globe, Coins } from 'lucide-react';
+import { CheckCircle, Clock, Users, Play, ShieldCheck, Globe, Coins, Edit, PlusCircle, Settings } from 'lucide-react';
 import Link from 'next/link';
 import EnrollmentButton from '@/components/enrollment-button';
+import { cookies } from 'next/headers';
+import * as jose from 'jose';
 
 async function getCourse(id: string) {
     try {
@@ -28,7 +30,7 @@ async function getCourse(id: string) {
                         lessons: true,
                     },
                     orderBy: {
-                        order: 'asc'
+                        createdAt: 'asc'
                     }
                 },
             },
@@ -39,12 +41,31 @@ async function getCourse(id: string) {
     }
 }
 
+async function getCurrentUserId() {
+  const cookieStore = cookies();
+  const token = cookieStore.get('token')?.value;
+  if (!token) return null;
+
+  try {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
+    const { payload } = await jose.jwtVerify(token, secret);
+    return payload.userId as string;
+  } catch (error) {
+    return null;
+  }
+}
+
 export default async function CourseDetailPage({ params }: { params: { id: string } }) {
-  const course = await getCourse(params.id);
+  const [course, currentUserId] = await Promise.all([
+    getCourse(params.id),
+    getCurrentUserId()
+  ]);
 
   if (!course) {
     notFound();
   }
+
+  const isInstructor = currentUserId === course.instructorId;
 
   return (
     <div className="space-y-8 lg:space-y-12">
@@ -116,31 +137,37 @@ export default async function CourseDetailPage({ params }: { params: { id: strin
 
             <TabsContent value="curriculum" className="mt-8">
               <Accordion type="single" collapsible className="w-full space-y-4">
-                {course.modules.map((module, index) => (
-                  <AccordionItem value={`item-${index}`} key={module.id} className="border rounded-xl px-4">
-                    <AccordionTrigger className="hover:no-underline font-bold text-lg">
-                      {module.title}
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-2 pb-6">
-                      <ul className="space-y-3">
-                        {module.lessons.map((lesson) => (
-                          <li key={lesson.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors group">
-                            <div className="flex items-center gap-4">
-                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                <Play className="h-3 w-3 fill-current" />
+                {course.modules.length === 0 ? (
+                  <div className="text-center py-10 border rounded-xl bg-muted/20">
+                    <p className="text-muted-foreground">No curriculum content available yet.</p>
+                  </div>
+                ) : (
+                  course.modules.map((module, index) => (
+                    <AccordionItem value={`item-${index}`} key={module.id} className="border rounded-xl px-4">
+                      <AccordionTrigger className="hover:no-underline font-bold text-lg">
+                        {module.title}
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-2 pb-6">
+                        <ul className="space-y-3">
+                          {module.lessons.map((lesson) => (
+                            <li key={lesson.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors group">
+                              <div className="flex items-center gap-4">
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                  <Play className="h-3 w-3 fill-current" />
+                                </div>
+                                <span className="font-medium text-sm sm:text-base">{lesson.title}</span>
                               </div>
-                              <span className="font-medium text-sm sm:text-base">{lesson.title}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-                              <Clock className="h-3.5 w-3.5" />
-                              <span>{lesson.duration}</span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
+                              <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>{lesson.duration}</span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))
+                )}
               </Accordion>
             </TabsContent>
           </Tabs>
@@ -149,19 +176,47 @@ export default async function CourseDetailPage({ params }: { params: { id: strin
         <aside className="lg:col-span-4 space-y-6">
           <Card className="border-2 border-primary shadow-xl shadow-primary/10 sticky top-24">
             <CardHeader>
-              <CardTitle className="text-2xl font-extrabold">Join this Course</CardTitle>
-              <CardDescription>Enroll today and start learning immediately.</CardDescription>
+              <CardTitle className="text-2xl font-extrabold">
+                {isInstructor ? 'Course Management' : 'Join this Course'}
+              </CardTitle>
+              <CardDescription>
+                {isInstructor 
+                  ? 'You are the instructor of this course. Manage your content below.' 
+                  : 'Enroll today and start learning immediately.'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
-                <span className="font-bold">Course Price</span>
-                <div className="flex items-center gap-1.5">
-                    <Coins className="h-5 w-5 text-yellow-500" />
-                    <span className="text-2xl font-black text-primary">{course.priceInCoins}</span>
+              {!isInstructor && (
+                <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
+                  <span className="font-bold">Course Price</span>
+                  <div className="flex items-center gap-1.5">
+                      <Coins className="h-5 w-5 text-yellow-500" />
+                      <span className="text-2xl font-black text-primary">{course.priceInCoins}</span>
+                  </div>
                 </div>
-              </div>
+              )}
               
-              <EnrollmentButton courseId={course.id} />
+              {isInstructor ? (
+                <div className="flex flex-col gap-3">
+                  <Button asChild className="w-full font-bold h-12">
+                    <Link href={`/courses/${course.id}/modules`} className="flex items-center justify-center gap-2">
+                      <PlusCircle className="h-4 w-4" /> Add Module
+                    </Link>
+                  </Button>
+                  <Button asChild className="w-full font-bold h-12">
+                    <Link href={`/courses/${course.id}/lessons`} className="flex items-center justify-center gap-2">
+                      <PlusCircle className="h-4 w-4" /> Add Lesson
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full font-bold h-12">
+                    <Link href={`/courses/${course.id}/edit`} className="flex items-center justify-center gap-2">
+                      <Settings className="h-4 w-4" /> Edit Curriculum
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <EnrollmentButton courseId={course.id} />
+              )}
               
               <Separator />
               <div className="space-y-4">
