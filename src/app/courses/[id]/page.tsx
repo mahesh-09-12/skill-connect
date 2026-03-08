@@ -19,6 +19,8 @@ import EnrollmentButton from '@/components/enrollment-button';
 import { cookies } from 'next/headers';
 import * as jose from 'jose';
 
+export const dynamic = 'force-dynamic';
+
 async function getCourse(id: string) {
     try {
         const course = await prisma.course.findUnique({
