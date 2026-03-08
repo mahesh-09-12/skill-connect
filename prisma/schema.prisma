@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -19,23 +22,33 @@ enum TransactionType {
 }
 
 model User {
-  id               String            @id @default(cuid())
-  name             String
-  email            String            @unique
-  password         String
-  role             Role              @default(LEARNER)
-  coinBalance      Int               @default(100)
-  streak           Int               @default(0)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  enrollments      Enrollment[]
-  communities      CommunityMember[]
-  posts            Post[]
-  comments         Comment[]
-  transactions     CoinTransaction[]
-  quizAttempts     QuizAttempt[]
-  lessonCompletions LessonCompletion[]
-  badges           Badge[]
+  id                String            @id @default(cuid())
+  name              String
+  email             String            @unique
+  password          String
+  role              Role              @default(LEARNER)
+  coinBalance       Int               @default(100)
+  streak            Int               @default(0)
+  lastCheckIn       DateTime?
+  avatarUrl         String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  createdCourses    Course[]          @relation("InstructorCourses")
+  enrollments       Enrollment[]
+  communityMembers  CommunityMember[]
+  posts             Post[]
+  comments          Comment[]
+  transactions      CoinTransaction[]
+  quizAttempts      QuizAttempt[]
+  badges            Badge[]
+  
+  // SkillSwap relations
+  skillSwapRequestsSent     SkillSwapRequest[] @relation("Requester")
+  skillSwapRequestsReceived SkillSwapRequest[] @relation("Receiver")
+  skillSwapAsTeacher        SkillSwapSession[] @relation("Teacher")
+  skillSwapAsStudent        SkillSwapSession[] @relation("Student")
 }
 
 model Course {
@@ -43,11 +56,11 @@ model Course {
   title         String
   description   String       @db.Text
   thumbnailUrl  String
-  priceInCoins  Int          @default(50)
-  level         String
-  language      String
+  priceInCoins  Int          @default(0)
+  level         String       @default("Beginner") // Beginner, Intermediate, Advanced
+  language      String       @default("English")
   instructorId  String
-  instructor    User         @relation(fields: [instructorId], references: [id])
+  instructor    User         @relation("InstructorCourses", fields: [instructorId], references: [id])
   modules       Module[]
   enrollments   Enrollment[]
   createdAt     DateTime     @default(now())
@@ -57,7 +70,7 @@ model Course {
 model Module {
   id        String   @id @default(cuid())
   title     String
-  order     Int
+  order     Int      @default(0)
   courseId  String
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons   Lesson[]
@@ -66,12 +79,22 @@ model Module {
 model Lesson {
   id          String             @id @default(cuid())
   title       String
-  content     String             @db.Text
-  duration    String
-  order       Int
+  content     String             @db.LongText
+  duration    String             @default("10m")
+  order       Int                @default(0)
   moduleId    String
   module      Module             @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   completions LessonCompletion[]
+}
+
+model LessonCompletion {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, lessonId])
 }
 
 model Enrollment {
@@ -90,8 +113,8 @@ model Community {
   id           String            @id @default(cuid())
   name         String
   description  String            @db.Text
-  category     String
   thumbnailUrl String
+  category     String
   memberCount  Int               @default(0)
   members      CommunityMember[]
   posts        Post[]
@@ -104,7 +127,7 @@ model CommunityMember {
   communityId String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
+  joinedAt    DateTime  @default(now())
 
   @@unique([userId, communityId])
 }
@@ -112,10 +135,10 @@ model CommunityMember {
 model Post {
   id          String    @id @default(cuid())
   content     String    @db.Text
-  likes       Int       @default(0)
   authorId    String
-  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   communityId String
+  likes       Int       @default(0)
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   comments    Comment[]
   createdAt   DateTime  @default(now())
@@ -124,20 +147,20 @@ model Post {
 model Comment {
   id        String   @id @default(cuid())
   content   String   @db.Text
-  authorId  String
   postId    String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  String
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
 
 model CoinTransaction {
   id        String          @id @default(cuid())
   userId    String
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   amount    Int
   type      TransactionType
   reason    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime        @default(now())
 }
 
@@ -145,8 +168,10 @@ model Quiz {
   id          String        @id @default(cuid())
   title       String
   description String?
-  questions   Json
+  reward      Int           @default(20)
+  questions   Json          // Store questions as JSON array
   attempts    QuizAttempt[]
+  createdAt   DateTime      @default(now())
 }
 
 model QuizAttempt {
@@ -159,23 +184,36 @@ model QuizAttempt {
   createdAt DateTime @default(now())
 }
 
-model LessonCompletion {
-  id        String   @id @default(cuid())
-  userId    String
-  lessonId  String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@unique([userId, lessonId])
-}
-
 model Badge {
   id          String   @id @default(cuid())
   name        String
   description String
-  icon        String
+  imageUrl    String?
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+}
+
+model SkillSwapRequest {
+  id             String   @id @default(cuid())
+  requesterId    String
+  receiverId     String
+  skillToLearn   String
+  skillToTeach   String
+  status         String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, COMPLETED
+  requester      User     @relation("Requester", fields: [requesterId], references: [id])
+  receiver       User     @relation("Receiver", fields: [receiverId], references: [id])
+  createdAt      DateTime @default(now())
+}
+
+model SkillSwapSession {
+  id          String   @id @default(cuid())
+  teacherId   String
+  studentId   String
+  skill       String
+  completed   Boolean  @default(false)
+  teacher     User     @relation("Teacher", fields: [teacherId], references: [id])
+  student     User     @relation("Student", fields: [studentId], references: [id])
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
 }
