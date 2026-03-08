@@ -7,7 +7,7 @@ import { Coins, BookOpen, Users, Trophy, ChevronRight, Clock, Star, Plus } from 
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 
 interface DashboardData {
@@ -34,6 +34,7 @@ export default function DashboardPage() {
     const { user, isLoading: userLoading } = useUser();
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         if (user) {
@@ -53,6 +54,30 @@ export default function DashboardPage() {
             fetchStats();
         }
     }, [user]);
+
+    const handleExploreCourses = () => {
+      try {
+        router.push("/courses");
+      } catch (error) {
+        console.error("Navigation error:", error);
+      }
+    };
+
+    const handleManageCourses = () => {
+      try {
+        router.push("/dashboard/courses");
+      } catch (error) {
+        console.error("Navigation error:", error);
+      }
+    };
+
+    const handleCreateCourse = () => {
+      try {
+        router.push("/courses/create");
+      } catch (error) {
+        console.error("Navigation error:", error);
+      }
+    };
 
     if (userLoading || (user && loading)) {
         return (
@@ -81,9 +106,7 @@ export default function DashboardPage() {
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
             <h1 className="text-2xl font-bold">Access Denied</h1>
             <p className="text-muted-foreground max-w-sm">Please log in to view your personalized dashboard and progress.</p>
-            <Button asChild>
-              <Link href="/login">Log In Now</Link>
-            </Button>
+            <Button onClick={() => router.push('/login')}>Log In Now</Button>
           </div>
         );
     }
@@ -138,8 +161,8 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-bold">Your Learning Progress</h2>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/courses">Browse All</Link>
+                    <Button variant="outline" size="sm" onClick={handleExploreCourses}>
+                      Explore Courses
                     </Button>
                   </div>
                   <div className="grid gap-4">
@@ -147,8 +170,8 @@ export default function DashboardPage() {
                       <Card>
                         <CardContent className="p-10 text-center space-y-4">
                           <p className="text-muted-foreground">You haven't enrolled in any courses yet.</p>
-                          <Button asChild variant="outline">
-                            <Link href="/courses">Explore Courses</Link>
+                          <Button onClick={handleExploreCourses} variant="outline">
+                            Explore Courses
                           </Button>
                         </CardContent>
                       </Card>
@@ -160,6 +183,7 @@ export default function DashboardPage() {
                           title={course.title} 
                           progress={course.progress} 
                           nextLesson={course.nextLesson || "Next module"} 
+                          onContinue={() => router.push(`/courses/${course.id}`)}
                         />
                       ))
                     )}
@@ -169,7 +193,7 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-bold">Course Management</h2>
-                    <Button size="sm" className="gap-2">
+                    <Button size="sm" className="gap-2" onClick={handleCreateCourse}>
                       <Plus className="h-4 w-4" /> Create Course
                     </Button>
                   </div>
@@ -184,13 +208,13 @@ export default function DashboardPage() {
                               Anyone can create a course on SkillConnect. Earn 50 coins for every course you publish!
                             </p>
                           </div>
-                          <Button variant="outline">Manage Your Courses</Button>
+                          <Button variant="outline" onClick={handleManageCourses}>Manage Your Courses</Button>
                       </CardContent>
                   </Card>
                 </div>
               </div>
               <div className="lg:col-span-4 space-y-6">
-                <ActivitySidebar activities={data?.activities || []} />
+                <ActivitySidebar activities={data?.activities || []} onViewWallet={() => router.push('/dashboard/wallet')} />
               </div>
             </div>
         </div>
@@ -215,7 +239,7 @@ function StatsCard({ title, value, icon: Icon, color, bg }: any) {
   );
 }
 
-function CourseProgressCard({ title, progress, nextLesson, id }: any) {
+function CourseProgressCard({ title, progress, nextLesson, onContinue }: any) {
   return (
     <Card>
       <CardContent className="p-4 sm:p-6">
@@ -234,10 +258,8 @@ function CourseProgressCard({ title, progress, nextLesson, id }: any) {
               <Progress value={progress} className="h-2" />
             </div>
           </div>
-          <Button asChild className="w-full sm:w-auto">
-            <Link href={`/courses/${id}`}>
+          <Button onClick={onContinue} className="w-full sm:w-auto">
                 Continue <ChevronRight className="ml-1 h-4 w-4" />
-            </Link>
           </Button>
         </div>
       </CardContent>
@@ -245,7 +267,7 @@ function CourseProgressCard({ title, progress, nextLesson, id }: any) {
   );
 }
 
-function ActivitySidebar({ activities }: { activities: any[] }) {
+function ActivitySidebar({ activities, onViewWallet }: { activities: any[], onViewWallet: () => void }) {
   return (
     <Card>
       <CardHeader>
@@ -268,8 +290,8 @@ function ActivitySidebar({ activities }: { activities: any[] }) {
             </div>
           ))
         )}
-        <Button variant="ghost" asChild className="w-full text-primary text-xs h-8">
-            <Link href="/dashboard/wallet">View Coin History</Link>
+        <Button variant="ghost" onClick={onViewWallet} className="w-full text-primary text-xs h-8">
+            View Coin History
         </Button>
       </CardContent>
     </Card>
