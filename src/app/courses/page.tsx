@@ -30,9 +30,6 @@ export default function CoursesPage() {
 
         if (res.ok && data.success && Array.isArray(data.courses)) {
             setCourses(data.courses);
-        } else {
-            console.error("Failed to fetch courses:", data?.message || "Unknown error");
-            setCourses([]);
         }
       } catch (error) {
         console.error("Network error while fetching courses", error);
