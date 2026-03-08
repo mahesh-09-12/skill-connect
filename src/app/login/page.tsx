@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useUser } from '@/hooks/use-user';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -29,6 +30,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const { login } = useUser();
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -50,10 +52,15 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Update global user state immediately
+        login(data.user);
+        
         toast({
           title: 'Success!',
           description: 'You have been logged in.',
         });
+        
+        // Use replace and refresh to ensure clean state and middleware triggers
         router.push('/dashboard');
         router.refresh();
       } else {
@@ -71,12 +78,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <Card className="mx-auto max-w-sm">
+    <div className="flex min-h-[80vh] items-center justify-center bg-background px-4">
+      <Card className="mx-auto w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Enter your credentials to access your SkillConnect account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -102,21 +109,21 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" {...field} />
+                      <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Logging in...' : 'Log in'}
+              <Button type="submit" className="w-full font-bold" disabled={isLoading}>
+                {isLoading ? 'Authenticating...' : 'Sign In'}
               </Button>
             </form>
           </Form>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-6 text-center text-sm">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="underline">
-              Sign up
+            <Link href="/register" className="font-bold text-primary hover:underline">
+              Create one for free
             </Link>
           </div>
         </CardContent>

@@ -27,19 +27,26 @@ export async function POST(req: NextRequest) {
 
     const token = jwt.sign(
       { userId: user.id, role: user.role },
-      process.env.JWT_SECRET || 'your-secret-key', // Use an environment variable for the secret
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
 
     const response = NextResponse.json({
       message: 'Logged in successfully',
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, coinBalance: user.coinBalance },
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role, 
+        coinBalance: user.coinBalance 
+      },
     });
 
     response.cookies.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
+      sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
