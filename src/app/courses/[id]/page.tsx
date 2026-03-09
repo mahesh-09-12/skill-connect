@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
@@ -26,7 +27,13 @@ async function getCourse(id: string) {
         const course = await prisma.course.findUnique({
             where: { id },
             include: {
-                instructor: true,
+                instructor: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
                 modules: {
                     include: {
                         lessons: true,
@@ -219,7 +226,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
                   </Button>
                   <Button asChild variant="outline" className="w-full font-bold h-12">
                     <Link href={`/courses/${course.id}/edit`} className="flex items-center justify-center gap-2">
-                      <Settings className="h-4 w-4" /> Edit Curriculum
+                      <Settings className="h-4 w-4" /> Edit Course
                     </Link>
                   </Button>
                 </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { BookOpen, Plus, Calendar, Layers, ChevronRight, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 interface InstructorCourse {
   id: string;
@@ -25,7 +26,6 @@ export default function MyCoursesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { toast } = useToast();
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -53,14 +53,6 @@ export default function MyCoursesPage() {
       fetchMyCourses();
     }
   }, [user, userLoading, router]);
-
-  const handleCreateCourse = () => {
-    try {
-      router.push("/courses/create");
-    } catch (err) {
-      console.error("Navigation error:", err);
-    }
-  };
 
   if (userLoading || loading) {
     return (
@@ -90,8 +82,10 @@ export default function MyCoursesPage() {
           <h1 className="text-3xl font-extrabold tracking-tight">Manage Your Courses</h1>
           <p className="text-muted-foreground mt-1">Create and manage your educational content.</p>
         </div>
-        <Button onClick={handleCreateCourse} className="gap-2">
-          <Plus className="h-4 w-4" /> Create New Course
+        <Button asChild className="gap-2">
+          <Link href="/courses/create">
+            <Plus className="h-4 w-4" /> Create New Course
+          </Link>
         </Button>
       </div>
 
@@ -107,7 +101,9 @@ export default function MyCoursesPage() {
                 You haven't created any courses yet. Share your expertise and earn rewards for every course you publish.
               </p>
             </div>
-            <Button onClick={handleCreateCourse} size="lg">Get Started Now</Button>
+            <Button asChild size="lg">
+              <Link href="/courses/create">Get Started Now</Link>
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -130,8 +126,10 @@ export default function MyCoursesPage() {
                     <span>{course._count.modules} Modules</span>
                   </div>
                 </div>
-                <Button variant="outline" className="w-full group" onClick={() => router.push(`/courses/${course.id}`)}>
-                  View Page <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <Button variant="outline" className="w-full group" asChild>
+                  <Link href={`/courses/${course.id}`}>
+                    View Page <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
