@@ -43,8 +43,12 @@ interface PageProps {
   }>;
 }
 
-export default async function CourseEditorPage({ params }: PageProps) {
-  const { courseId } = await params;
+export default async function CourseEditorPage({
+  params,
+}: {
+  params: { courseId: string };
+}) {
+  const courseId = params.courseId;
 
   const user = await getCurrentUser();
   if (!user) {
@@ -52,22 +56,20 @@ export default async function CourseEditorPage({ params }: PageProps) {
   }
 
   const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    include: {
-      modules: {
-        orderBy: {
-          order: 'asc',
-        },
-        include: {
-          lessons: {
-            orderBy: {
-              order: 'asc',
-            },
-          },
-        },
+  where: {
+    id: courseId
+  },
+  include: {
+    modules: {
+      include: {
+        lessons: true
       },
-    },
-  });
+      orderBy: {
+        order: 'asc'
+      }
+    }
+  }
+});
 
   if (!course) {
     notFound();
