@@ -55,11 +55,15 @@ export default async function CourseEditorPage({ params }: PageProps) {
     where: { id: courseId },
     include: {
       modules: {
-        include: {
-          lessons: true,
-        },
         orderBy: {
           order: 'asc',
+        },
+        include: {
+          lessons: {
+            orderBy: {
+              order: 'asc',
+            },
+          },
         },
       },
     },
