@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
     const moduleId = formData.get("moduleId") as string;
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
+    const duration = (formData.get("duration") as string) || "0:00";
     const videoFile = formData.get("video") as File | null;
 
     if (!moduleId) {
@@ -30,7 +31,6 @@ export async function POST(req: NextRequest) {
     });
 
     let videoUrl = "";
-    let duration = "5:00"; // Default duration as calculating on server is complex without extra libs
 
     if (videoFile && videoFile instanceof File) {
       const filename = `${Date.now()}-${videoFile.name.replace(/\s+/g, '_')}`;

@@ -31,19 +31,40 @@ export default function AddLessonButton({ moduleId }: AddLessonButtonProps) {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const formData = new FormData();
-    const videoInput = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement;
-    const videoFile = videoInput.files?.[0];
-
-    formData.append('moduleId', moduleId);
-    formData.append('title', title.trim());
-    formData.append('description', description.trim());
-    if (videoFile) {
-      formData.append('video', videoFile);
-    }
-
     setLoading(true);
+
     try {
+      const formData = new FormData();
+      const videoInput = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement;
+      const videoFile = videoInput.files?.[0];
+
+      formData.append('moduleId', moduleId);
+      formData.append('title', title.trim());
+      formData.append('description', description.trim());
+
+      let formattedDuration = "0:00";
+
+      if (videoFile) {
+        formattedDuration = await new Promise<string>((resolve) => {
+          const video = document.createElement('video');
+          video.preload = 'metadata';
+          video.onloadedmetadata = () => {
+            window.URL.revokeObjectURL(video.src);
+            const durationSeconds = Math.floor(video.duration);
+            const minutes = Math.floor(durationSeconds / 60);
+            const seconds = durationSeconds % 60;
+            resolve(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+          };
+          video.onerror = () => {
+            resolve("0:00");
+          };
+          video.src = URL.createObjectURL(videoFile);
+        });
+
+        formData.append('video', videoFile);
+        formData.append('duration', formattedDuration);
+      }
+
       const res = await fetch("/api/lessons", {
         method: "POST",
         body: formData,
@@ -76,7 +97,7 @@ export default function AddLessonButton({ moduleId }: AddLessonButtonProps) {
         <PlusCircle className="h-3 w-3" /> Add Lesson
       </Button>
 
-      <Dialog open={open} onOpen_change={setOpen}>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Add New Lesson</DialogTitle>
