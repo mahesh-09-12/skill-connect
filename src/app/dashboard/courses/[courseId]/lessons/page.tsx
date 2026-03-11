@@ -254,12 +254,25 @@ export default function LessonsPage({
           <DialogHeader>
             <DialogTitle>{selectedLesson?.title}</DialogTitle>
           </DialogHeader>
-          <video
-            src={selectedLesson?.videoUrl}
-            controls
-            className="w-full rounded-lg"
-            autoPlay
-          />
+          <div className="aspect-video w-full">
+            {selectedLesson?.videoUrl ? (
+              <video controls className="w-full h-full rounded-lg bg-black">
+                <source
+                  src={selectedLesson.videoUrl.startsWith('/') ? selectedLesson.videoUrl : `/${selectedLesson.videoUrl}`}
+                  type="video/mp4"
+                />
+                <source
+                  src={selectedLesson.videoUrl.startsWith('/') ? selectedLesson.videoUrl : `/${selectedLesson.videoUrl}`}
+                  type="video/webm"
+                />
+                Your browser does not support the video tag.
+              </video>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">No video uploaded for this lesson.</p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
