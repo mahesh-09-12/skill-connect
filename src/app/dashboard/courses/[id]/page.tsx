@@ -43,7 +43,7 @@ export default async function CourseEditorPage({
   const courseId = resolvedParams.id;
 
   if (!courseId) {
-    throw new Error("Course ID missing from route");
+    throw new Error("Missing course id");
   }
 
   const user = await getCurrentUser();
@@ -66,7 +66,14 @@ export default async function CourseEditorPage({
   });
 
   if (!course) {
-    throw new Error("Course not found");
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+        <h1 className="text-2xl font-bold">Course not found</h1>
+        <Button asChild variant="outline">
+          <Link href="/dashboard/courses">Back to My Courses</Link>
+        </Button>
+      </div>
+    );
   }
 
   if (course.instructorId !== user.userId) {
