@@ -1,10 +1,9 @@
-
 'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, Star, Clock } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Course } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,14 +36,10 @@ export default function CourseCard({ course }: CourseCardProps) {
           </Badge>
         </div>
         <CardHeader className="p-4 space-y-2 flex-grow">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-[10px] uppercase tracking-wider font-bold h-5">
               {course.language}
             </Badge>
-            <div className="flex items-center gap-1 text-xs font-medium text-amber-500">
-              <Star className="h-3 w-3 fill-current" />
-              <span>4.8</span>
-            </div>
           </div>
           <CardTitle className="text-lg font-bold line-clamp-2 leading-tight min-h-[3rem]">
             {course.title}
