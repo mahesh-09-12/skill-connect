@@ -7,18 +7,44 @@ import { ArrowLeft, PlusCircle, Layers, Edit, Trash2, Loader2 } from 'lucide-rea
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function ModuleManagementPage({ params }: { params: Promise<{ courseId: string }> }) {
   const resolvedParams = use(params);
   const courseId = resolvedParams.courseId;
-  const router = useRouter();
   const { toast } = useToast();
   
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creatingFirstModule, setCreatingFirstModule] = useState(false);
-  const [addingModule, setAddingModule] = useState(false);
-  const [processingId, setProcessingId] = useState<string | null>(null);
+  
+  // Dialog States
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  
+  // Form States
+  const [moduleTitle, setModuleTitle] = useState("");
+  const [selectedModule, setSelectedModule] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function fetchModules() {
@@ -37,130 +63,81 @@ export default function ModuleManagementPage({ params }: { params: Promise<{ cou
     fetchModules();
   }, [courseId]);
 
-  async function handleCreateModule(isFirst: boolean = false) {
-    const title = window.prompt("Enter module title:");
-    if (!title || title.trim() === "") return;
-
-    if (isFirst) setCreatingFirstModule(true);
-    else setAddingModule(true);
-
+  const handleCreateModule = async () => {
+    if (!moduleTitle.trim()) return;
+    setIsSubmitting(true);
     try {
       const res = await fetch("/api/modules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          courseId: courseId,
-          title: title.trim()
+          courseId,
+          title: moduleTitle.trim()
         })
       });
 
-      if (!res.ok) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to create module"
-        });
-        return;
-      }
+      if (!res.ok) throw new Error("Failed to create module");
 
-      toast({
-        title: "Success",
-        description: "Module created successfully"
-      });
-      
+      toast({ title: "Success", description: "Module created successfully" });
+      setCreateOpen(false);
+      setModuleTitle("");
       window.location.reload();
     } catch (error) {
-      console.error(error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred"
-      });
+      toast({ variant: "destructive", title: "Error", description: "Could not create module" });
     } finally {
-      if (isFirst) setCreatingFirstModule(false);
-      else setAddingModule(false);
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  async function handleEditModule(moduleId: string, currentTitle: string) {
-    const newTitle = window.prompt("Edit module title:", currentTitle);
-    if (!newTitle || newTitle.trim() === "" || newTitle === currentTitle) return;
-
-    setProcessingId(moduleId);
+  const handleEditModule = async () => {
+    if (!moduleTitle.trim() || !selectedModule) return;
+    setIsSubmitting(true);
     try {
       const res = await fetch("/api/modules", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          moduleId,
-          title: newTitle.trim()
+          moduleId: selectedModule.id,
+          title: moduleTitle.trim()
         })
       });
 
-      if (!res.ok) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to update module"
-        });
-        return;
-      }
+      if (!res.ok) throw new Error("Failed to update module");
 
-      toast({
-        title: "Success",
-        description: "Module updated successfully"
-      });
-      
+      toast({ title: "Success", description: "Module updated successfully" });
+      setEditOpen(false);
+      setSelectedModule(null);
+      setModuleTitle("");
       window.location.reload();
     } catch (error) {
-      console.error(error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred"
-      });
+      toast({ variant: "destructive", title: "Error", description: "Could not update module" });
     } finally {
-      setProcessingId(null);
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  async function handleDeleteModule(moduleId: string) {
-    if (!window.confirm("Are you sure you want to delete this module? This action cannot be undone.")) return;
-
-    setProcessingId(moduleId);
+  const handleDeleteModule = async () => {
+    if (!selectedModule) return;
+    setIsSubmitting(true);
     try {
       const res = await fetch("/api/modules", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ moduleId })
+        body: JSON.stringify({ moduleId: selectedModule.id })
       });
 
-      if (!res.ok) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to delete module"
-        });
-        return;
-      }
+      if (!res.ok) throw new Error("Failed to delete module");
 
-      toast({
-        title: "Success",
-        description: "Module deleted successfully"
-      });
-      
+      toast({ title: "Success", description: "Module deleted successfully" });
+      setDeleteOpen(false);
+      setSelectedModule(null);
       window.location.reload();
     } catch (error) {
-      console.error(error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred"
-      });
+      toast({ variant: "destructive", title: "Error", description: "Could not delete module" });
     } finally {
-      setProcessingId(null);
+      setIsSubmitting(false);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -179,8 +156,11 @@ export default function ModuleManagementPage({ params }: { params: Promise<{ cou
         >
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
         </Link>
-        <Button onClick={() => handleCreateModule(false)} disabled={addingModule} className="gap-2">
-          {addingModule ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
+        <Button onClick={() => {
+          setModuleTitle("");
+          setCreateOpen(true);
+        }} className="gap-2">
+          <PlusCircle className="h-4 w-4" />
           Add New Module
         </Button>
       </div>
@@ -198,15 +178,14 @@ export default function ModuleManagementPage({ params }: { params: Promise<{ cou
                 <Layers className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
                 <h3 className="text-lg font-bold">No modules yet</h3>
                 <p className="text-muted-foreground mb-6">Create your first module to start building the curriculum.</p>
-                <Button onClick={() => handleCreateModule(true)} disabled={creatingFirstModule}>
-                  {creatingFirstModule && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button onClick={() => setCreateOpen(true)}>
                   Create First Module
                 </Button>
               </CardContent>
             </Card>
           ) : (
             modules.map((module, index) => (
-              <Card key={module.id} className={processingId === module.id ? "opacity-50 pointer-events-none" : ""}>
+              <Card key={module.id}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center justify-center w-8 h-8 rounded bg-primary/10 text-primary font-bold text-xs">
@@ -220,28 +199,29 @@ export default function ModuleManagementPage({ params }: { params: Promise<{ cou
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {processingId === module.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    ) : (
-                      <>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0"
-                          onClick={() => handleEditModule(module.id, module.title)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-destructive"
-                          onClick={() => handleDeleteModule(module.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        setSelectedModule(module);
+                        setModuleTitle(module.title);
+                        setEditOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-destructive"
+                      onClick={() => {
+                        setSelectedModule(module);
+                        setDeleteOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -249,6 +229,92 @@ export default function ModuleManagementPage({ params }: { params: Promise<{ cou
           )}
         </div>
       </div>
+
+      {/* Create Module Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Module</DialogTitle>
+            <DialogDescription>
+              Add a new section to your course curriculum.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Module Title</Label>
+              <Input 
+                id="title" 
+                placeholder="e.g. Introduction to React" 
+                value={moduleTitle}
+                onChange={(e) => setModuleTitle(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateModule} disabled={isSubmitting || !moduleTitle.trim()}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Module
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Module Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Module</DialogTitle>
+            <DialogDescription>
+              Update the title of your module.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Module Title</Label>
+              <Input 
+                id="edit-title" 
+                value={moduleTitle}
+                onChange={(e) => setModuleTitle(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditModule} disabled={isSubmitting || !moduleTitle.trim()}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the module
+              <strong> {selectedModule?.title}</strong> and all its associated lessons.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteModule();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isSubmitting}
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete Module
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
