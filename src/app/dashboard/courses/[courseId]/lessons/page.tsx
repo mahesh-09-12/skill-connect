@@ -46,6 +46,7 @@ export default function LessonsPage({
   const [loading, setLoading] = useState(true);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [editingLesson, setEditingLesson] = useState<any>(null);
+  const [lessonToDelete, setLessonToDelete] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Form states for editing
@@ -227,7 +228,7 @@ export default function LessonsPage({
                             size="icon"
                             onClick={(e) => {
                               e.stopPropagation();
-                              deleteLesson(lesson.id);
+                              setLessonToDelete(lesson);
                             }}
                           >
                             <Trash className="h-4 w-4 text-red-500" />
@@ -248,18 +249,50 @@ export default function LessonsPage({
       </div>
 
       {/* Video Player Dialog */}
-      {selectedLesson && (
-        <Dialog open onOpenChange={() => setSelectedLesson(null)}>
-          <DialogContent className="max-w-3xl">
-            <video
-              src={selectedLesson.videoUrl}
-              controls
-              className="w-full rounded-lg"
-              autoPlay
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+      <Dialog open={selectedLesson !== null} onOpenChange={() => setSelectedLesson(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{selectedLesson?.title}</DialogTitle>
+          </DialogHeader>
+          <video
+            src={selectedLesson?.videoUrl}
+            controls
+            className="w-full rounded-lg"
+            autoPlay
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Lesson Confirmation Dialog */}
+      <Dialog open={lessonToDelete !== null} onOpenChange={() => setLessonToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Lesson</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this lesson? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setLessonToDelete(null)}
+              className="font-bold"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                deleteLesson(lessonToDelete.id);
+                setLessonToDelete(null);
+              }}
+              className="font-bold"
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Lesson Dialog */}
       <Dialog open={editingLesson !== null} onOpenChange={() => setEditingLesson(null)}>
