@@ -24,7 +24,7 @@ export default async function CommunityMembersPage({
   }
 
   const members = await prisma.communityMember.findMany({
-    where: { communityId },
+    where: { communityId: communityId },
     include: {
       user: {
         select: {
