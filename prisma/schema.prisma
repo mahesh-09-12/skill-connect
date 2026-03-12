@@ -12,50 +12,50 @@ enum Role {
   CREATOR
 }
 
+enum TransactionType {
+  EARN
+  SPEND
+}
+
+enum CommunityRole {
+  MEMBER
+  ADMIN
+}
+
 model User {
-  id               String            @id @default(cuid())
-  name             String
-  email            String            @unique
-  password         String
-  role             Role              @default(LEARNER)
-  coinBalance      Int               @default(100)
-  streak           Int               @default(0)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  courses          Course[]          @relation("InstructorCourses")
-  enrollments      Enrollment[]
-  coinTransactions CoinTransaction[]
-  communityMembers CommunityMember[]
-  discussions      Discussion[]
-  comments         Comment[]
+  id            String            @id @default(cuid())
+  name          String
+  email         String            @unique
+  password      String
+  role          Role              @default(LEARNER)
+  coinBalance   Int               @default(0)
+  streak        Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  courses       Course[]          @relation("InstructorCourses")
+  enrollments   Enrollment[]
+  transactions  CoinTransaction[]
+  memberships   CommunityMember[]
+  discussions   Discussion[]      @relation("UserDiscussions")
+  comments      Comment[]         @relation("UserComments")
 }
 
 model Course {
-  id           String       @id @default(cuid())
-  title        String
-  description  String
-  thumbnailUrl String
-  priceInCoins Int
-  level        String
-  language     String
-  instructorId String
-  instructor   User         @relation("InstructorCourses", fields: [instructorId], references: [id])
-  modules      Module[]
-  enrollments  Enrollment[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-}
+  id            String       @id @default(cuid())
+  title         String
+  description   String
+  thumbnailUrl  String
+  priceInCoins  Int          @default(0)
+  level         String
+  language      String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-model Enrollment {
-  id        String   @id @default(cuid())
-  userId    String
-  courseId  String
-  progress  Int      @default(0)
-  user      User     @relation(fields: [userId], references: [id])
-  course    Course   @relation(fields: [courseId], references: [id])
-  createdAt DateTime @default(now())
-
-  @@unique([userId, courseId])
+  instructorId  String
+  instructor    User         @relation("InstructorCourses", fields: [instructorId], references: [id])
+  modules       Module[]
+  enrollments   Enrollment[]
 }
 
 model Module {
@@ -67,6 +67,7 @@ model Module {
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons     Lesson[]
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Lesson {
@@ -79,16 +80,31 @@ model Lesson {
   moduleId    String
   module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Enrollment {
+  userId    String
+  courseId  String
+  progress  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+
+  @@id([userId, courseId])
 }
 
 model CoinTransaction {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   userId    String
   amount    Int
-  type      String   // "EARN" or "SPEND"
+  type      TransactionType
   reason    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
+  createdAt DateTime        @default(now())
+
+  user      User            @relation(fields: [userId], references: [id])
 }
 
 model Community {
@@ -100,40 +116,45 @@ model Community {
   memberCount  Int               @default(0)
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+
+  discussions  Discussion[]      @relation("CommunityDiscussions")
   members      CommunityMember[]
-  discussions  Discussion[]
 }
 
 model CommunityMember {
-  id          String    @id @default(cuid())
   userId      String
   communityId String
-  role        String    @default("MEMBER") // "MEMBER", "ADMIN"
-  user        User      @relation(fields: [userId], references: [id])
-  community   Community @relation(fields: [communityId], references: [id])
-  createdAt   DateTime  @default(now())
+  role        CommunityRole @default(MEMBER)
+  createdAt   DateTime      @default(now())
 
-  @@unique([userId, communityId])
+  user        User          @relation(fields: [userId], references: [id])
+  community   Community     @relation(fields: [communityId], references: [id])
+
+  @@id([userId, communityId])
 }
 
 model Discussion {
   id          String    @id @default(cuid())
+  title       String?
   content     String
-  authorId    String
   communityId String
-  author      User      @relation(fields: [authorId], references: [id])
-  community   Community @relation(fields: [communityId], references: [id])
-  comments    Comment[]
+  authorId    String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  community   Community @relation("CommunityDiscussions", fields: [communityId], references: [id], onDelete: Cascade)
+  author      User      @relation("UserDiscussions", fields: [authorId], references: [id])
+  comments    Comment[] @relation("DiscussionComments")
 }
 
 model Comment {
   id           String     @id @default(cuid())
   content      String
-  authorId     String
   discussionId String
-  author       User       @relation(fields: [authorId], references: [id])
-  discussion   Discussion @relation(fields: [discussionId], references: [id])
+  authorId     String
   createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  discussion   Discussion @relation("DiscussionComments", fields: [discussionId], references: [id], onDelete: Cascade)
+  author       User       @relation("UserComments", fields: [authorId], references: [id])
 }
