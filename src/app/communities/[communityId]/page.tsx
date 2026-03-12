@@ -22,13 +22,13 @@ type CommunityWithDiscussions = Prisma.CommunityGetPayload<{
   include: {
     discussions: {
       include: {
-        author: true;
+        author: true,
         _count: {
-          select: { comments: true };
-        };
-      };
-    };
-  };
+          select: { comments: true }
+        }
+      }
+    }
+  }
 }>;
 
 async function getCurrentUserId() {
@@ -60,8 +60,8 @@ async function getCommunity(id: string): Promise<CommunityWithDiscussions | null
                     createdAt: 'desc'
                 }
             },
-        }
-    }) as CommunityWithDiscussions | null;
+        },
+    } as any) as CommunityWithDiscussions | null;
     return community;
 }
 
