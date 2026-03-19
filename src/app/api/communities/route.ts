@@ -3,36 +3,32 @@ import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
+    // Minimal safe query to prevent timeouts and massive payloads
+    // We use _count for the list view and only include essential discussion info
     const communities = await prisma.community.findMany({
       include: {
+        _count: {
+          select: {
+            discussions: true,
+            members: true,
+          }
+        },
         discussions: {
           include: {
             author: {
               select: {
                 id: true,
                 name: true,
-                email: true
               }
             },
-            comments: true,
             _count: {
               select: { comments: true }
             }
           },
           orderBy: {
             createdAt: 'desc'
-          }
-        },
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            }
-          }
+          },
+          take: 5 // Only fetch a few recent discussions per community for the list view
         }
       },
       orderBy: {
@@ -42,8 +38,9 @@ export async function GET() {
     
     return NextResponse.json(communities || []);
   } catch (error: any) {
-    console.error('Error in /api/communities:', error);
+    console.error('Communities fetch error:', error);
 
+    // Specific handling for missing tables
     if (error.code === 'P2021') {
       return NextResponse.json({ 
         message: 'Database tables are missing. Please run "npx prisma db push".',
