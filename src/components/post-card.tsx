@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Heart, MessageSquare, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Heart, MessageSquare, MoreHorizontal, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -16,6 +16,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface PostCardProps {
   post: {
@@ -40,11 +48,11 @@ export default function PostCard({ post }: PostCardProps) {
   const { toast } = useToast();
   const router = useRouter();
   
-  // Basic like tracking
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post._count?.likes || 0);
   const [isLiking, setIsLiking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const postVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -82,8 +90,6 @@ export default function PostCard({ post }: PostCardProps) {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this discussion?')) return;
-
     setIsDeleting(true);
     try {
       const res = await fetch(`/api/discussions/${post.id}`, {
@@ -92,6 +98,7 @@ export default function PostCard({ post }: PostCardProps) {
 
       if (res.ok) {
         toast({ title: 'Success', description: 'Discussion deleted' });
+        setShowDeleteDialog(false);
         router.refresh();
       } else {
         const err = await res.json();
@@ -105,6 +112,9 @@ export default function PostCard({ post }: PostCardProps) {
   };
 
   const isAuthor = user?.id === post.authorId;
+  const lines = post.content.split('\n');
+  const firstLine = lines[0];
+  const otherLines = lines.slice(1).join('\n');
 
   return (
     <motion.div variants={postVariants} initial="hidden" animate="visible">
@@ -135,7 +145,10 @@ export default function PostCard({ post }: PostCardProps) {
                   <DropdownMenuItem className="cursor-pointer">
                     <Pencil className="mr-2 h-4 w-4" /> Edit
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer text-destructive" onClick={handleDelete}>
+                  <DropdownMenuItem 
+                    className="cursor-pointer text-destructive" 
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
                     <Trash2 className="mr-2 h-4 w-4" /> Delete
                   </DropdownMenuItem>
                 </>
@@ -147,10 +160,15 @@ export default function PostCard({ post }: PostCardProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </CardHeader>
-        <CardContent>
-          <p className="whitespace-pre-wrap text-foreground/90 text-sm sm:text-base leading-relaxed">
-            {post.content}
+        <CardContent className="space-y-2">
+          <p className="font-semibold text-base text-foreground leading-tight">
+            {firstLine}
           </p>
+          {otherLines.length > 0 && (
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+              {otherLines}
+            </p>
+          )}
         </CardContent>
         <CardFooter className="flex justify-start gap-2">
           <motion.div whileTap={{ scale: 0.9 }}>
@@ -171,6 +189,39 @@ export default function PostCard({ post }: PostCardProps) {
           </Button>
         </CardFooter>
       </Card>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Discussion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this discussion? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
