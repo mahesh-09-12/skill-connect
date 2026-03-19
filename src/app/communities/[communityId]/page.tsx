@@ -16,6 +16,7 @@ import {
 import { cookies } from 'next/headers';
 import * as jose from 'jose';
 import { Prisma } from '@prisma/client';
+import JoinCommunityButton from '@/components/join-community-button';
 
 // Define the precise type for Community including discussions and nested relations
 type CommunityWithDiscussions = Prisma.CommunityGetPayload<{
@@ -75,12 +76,27 @@ async function getCommunity(id: string): Promise<CommunityWithDiscussions | null
 
 async function getTopContributors(communityId: string) {
   try {
-    const users = await prisma.user.findMany({ take: 3 });
-    return users.map(user => ({ ...user, title: "Contributor" }));
+    const members = await prisma.communityMember.findMany({
+      where: { communityId },
+      include: { user: true },
+      take: 5,
+      orderBy: { joinedAt: 'asc' } // Placeholder for activity ranking
+    });
+    return members.map(m => ({ ...m.user, title: m.role === 'ADMIN' ? 'Moderator' : 'Contributor' }));
   } catch (error) {
     console.error("Top contributors fetch error:", error);
     return [];
   }
+}
+
+async function checkIsMember(userId: string | null, communityId: string) {
+  if (!userId) return false;
+  const membership = await prisma.communityMember.findUnique({
+    where: {
+      userId_communityId: { userId, communityId }
+    }
+  });
+  return !!membership;
 }
 
 export default async function CommunityDetailPage({ params }: { params: Promise<{ communityId: string }> }) {
@@ -94,7 +110,10 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
     notFound();
   }
 
-  const topContributors = await getTopContributors(communityId);
+  const [topContributors, isMember] = await Promise.all([
+    getTopContributors(communityId),
+    checkIsMember(currentUserId, communityId)
+  ]);
 
   return (
     <div className="space-y-6 sm:space-y-10">
@@ -123,9 +142,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
               <Button asChild size="lg" variant="secondary" className="font-bold border bg-muted text-foreground hover:bg-muted/80 shadow-lg">
                 <Link href={`/communities/${community.id}/posts`}>View Discussions</Link>
               </Button>
-              <Button size="lg" className="font-bold shadow-lg">
-                Join Community
-              </Button>
+              <JoinCommunityButton communityId={community.id} initialIsMember={isMember} />
             </div>
           </div>
         </div>
@@ -208,7 +225,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
                 <CardTitle className="text-lg">Top Contributors</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {topContributors.map((user) => (
+                {topContributors.length > 0 ? topContributors.map((user) => (
                   <div key={user.id} className="flex items-center gap-3">
                     <Avatar className="h-9 w-9 border">
                       <AvatarImage src={`https://picsum.photos/seed/${user.id}/100/100`} />
@@ -216,11 +233,13 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
                     </Avatar>
                     <div className="flex flex-col">
                       <p className="text-sm font-bold truncate max-w-[120px]">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">Contributor</p>
+                      <p className="text-xs text-muted-foreground">{user.title}</p>
                     </div>
                     <Badge variant="secondary" className="ml-auto text-[10px] h-5">Top</Badge>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-sm text-muted-foreground italic text-center py-2">No contributors yet.</p>
+                )}
               </CardContent>
             </Card>
           </div>
