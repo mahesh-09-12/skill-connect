@@ -8,17 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Reply, Send } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-
-interface Comment {
-  id: string;
-  content: string;
-  createdAt: string;
-  author: {
-    id: string;
-    name: string;
-  };
-  replies: Comment[];
-}
+import { getComments, addComment, LocalComment } from '@/lib/localComments';
 
 interface DiscussionCommentsProps {
   discussionId: string;
@@ -27,59 +17,54 @@ interface DiscussionCommentsProps {
 export default function DiscussionComments({ discussionId }: DiscussionCommentsProps) {
   const { user } = useUser();
   const { toast } = useToast();
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<LocalComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
 
-  const fetchComments = async () => {
-    try {
-      const res = await fetch(`/api/discussions/${discussionId}/comments`);
-      if (res.ok) {
-        const data = await res.json();
-        setComments(data);
-      }
-    } catch (err) {
-      console.error("Fetch comments error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Initial load from localStorage
   useEffect(() => {
-    fetchComments();
+    const stored = getComments(discussionId);
+    setComments(stored);
+    setLoading(false);
+
+    // Periodic cleanup interval (every 60 seconds)
+    const interval = setInterval(() => {
+      const refreshed = getComments(discussionId);
+      setComments(refreshed);
+    }, 60000);
+
+    return () => clearInterval(interval);
   }, [discussionId]);
 
   const handleSubmitComment = async () => {
     const trimmedContent = newComment.trim();
-    if (!trimmedContent) return;
+    if (!trimmedContent || !user) return;
     
     setSubmitting(true);
-
     try {
-      const res = await fetch(`/api/discussions/${discussionId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: trimmedContent }),
-      });
+      const commentObj: LocalComment = {
+        id: crypto.randomUUID(),
+        content: trimmedContent,
+        createdAt: Date.now(),
+        author: {
+          id: user.id,
+          name: user.name,
+        },
+        replies: [],
+      };
 
-      const data = await res.json();
-
-      if (res.ok) {
-        setNewComment('');
-        setComments(prev => [data, ...prev]);
-        toast({ title: "Success", description: "Comment posted!" });
-      } else {
-        throw new Error(data.message || "Failed to post comment");
-      }
-    } catch (err: any) {
-      console.error("Comment submit error:", err);
+      const updated = addComment(discussionId, commentObj);
+      setComments(updated);
+      setNewComment('');
+      toast({ title: "Success", description: "Comment saved locally (expires in 24h)" });
+    } catch (err) {
       toast({ 
         variant: 'destructive', 
         title: 'Error', 
-        description: err.message || 'Failed to post comment' 
+        description: 'Failed to save comment' 
       });
     } finally {
       setSubmitting(false);
@@ -88,32 +73,31 @@ export default function DiscussionComments({ discussionId }: DiscussionCommentsP
 
   const handleReply = async (parentId: string) => {
     const trimmedReply = replyContent.trim();
-    if (!trimmedReply) return;
+    if (!trimmedReply || !user) return;
 
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/comments/${parentId}/reply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: trimmedReply }),
-      });
+      const replyObj: LocalComment = {
+        id: crypto.randomUUID(),
+        content: trimmedReply,
+        createdAt: Date.now(),
+        author: {
+          id: user.id,
+          name: user.name,
+        },
+        replies: [],
+      };
 
-      const data = await res.json();
-
-      if (res.ok) {
-        setReplyContent('');
-        setReplyingTo(null);
-        fetchComments();
-        toast({ title: "Success", description: "Reply posted!" });
-      } else {
-        throw new Error(data.message || "Failed to post reply");
-      }
-    } catch (err: any) {
-      console.error("Reply submit error:", err);
+      const updated = addComment(discussionId, replyObj, parentId);
+      setComments(updated);
+      setReplyContent('');
+      setReplyingTo(null);
+      toast({ title: "Success", description: "Reply saved locally" });
+    } catch (err) {
       toast({ 
         variant: 'destructive', 
         title: 'Error', 
-        description: err.message || 'Failed to post reply' 
+        description: 'Failed to save reply' 
       });
     } finally {
       setSubmitting(false);
@@ -128,9 +112,14 @@ export default function DiscussionComments({ discussionId }: DiscussionCommentsP
 
   return (
     <div className="space-y-8 mt-8">
-      <h3 className="text-xl font-bold flex items-center gap-2">
-        Comments ({totalComments})
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-bold flex items-center gap-2">
+          Comments ({totalComments})
+        </h3>
+        <span className="text-[10px] uppercase font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded">
+          Local Storage / 24h Expiry
+        </span>
+      </div>
 
       {user ? (
         <div className="flex gap-4">
@@ -233,6 +222,11 @@ export default function DiscussionComments({ discussionId }: DiscussionCommentsP
             )}
           </div>
         ))}
+        {comments.length === 0 && (
+          <div className="text-center py-10 border-2 border-dashed rounded-xl bg-muted/20">
+            <p className="text-sm text-muted-foreground">No comments yet. Be the first to share your thoughts!</p>
+          </div>
+        )}
       </div>
     </div>
   );
