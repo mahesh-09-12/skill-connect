@@ -24,7 +24,7 @@ type CommunityWithDiscussions = Prisma.CommunityGetPayload<{
       include: {
         author: true,
         _count: {
-          select: { comments: true }
+          select: { comments: true, likes: true }
         }
       }
     }
@@ -53,7 +53,7 @@ async function getCommunity(id: string): Promise<CommunityWithDiscussions | null
                 include: {
                     author: true,
                     _count: {
-                      select: { comments: true }
+                      select: { comments: true, likes: true }
                     }
                 },
                 orderBy: {
