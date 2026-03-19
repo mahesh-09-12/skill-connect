@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 interface PostCardProps {
   post: {
@@ -53,6 +54,11 @@ export default function PostCard({ post }: PostCardProps) {
   const [isLiking, setIsLiking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Edit states
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const postVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -111,6 +117,31 @@ export default function PostCard({ post }: PostCardProps) {
     }
   };
 
+  const handleEdit = async () => {
+    if (!editContent.trim()) return;
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/discussions/${post.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editContent.trim() }),
+      });
+
+      if (res.ok) {
+        toast({ title: 'Success', description: 'Discussion updated' });
+        setIsEditing(false);
+        router.refresh();
+      } else {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to update');
+      }
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const isAuthor = user?.id === post.authorId;
 
   // Clean Markdown headers from display
@@ -148,7 +179,13 @@ export default function PostCard({ post }: PostCardProps) {
             <DropdownMenuContent align="end">
               {isAuthor ? (
                 <>
-                  <DropdownMenuItem className="cursor-pointer">
+                  <DropdownMenuItem 
+                    className="cursor-pointer" 
+                    onClick={() => {
+                      setEditContent(post.content);
+                      setIsEditing(true);
+                    }}
+                  >
                     <Pencil className="mr-2 h-4 w-4" /> Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem 
@@ -196,6 +233,7 @@ export default function PostCard({ post }: PostCardProps) {
         </CardFooter>
       </Card>
 
+      {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
@@ -223,6 +261,46 @@ export default function PostCard({ post }: PostCardProps) {
                 </>
               ) : (
                 'Delete'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Discussion</DialogTitle>
+            <DialogDescription>Make changes to your post below.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              placeholder="What's on your mind?"
+              className="min-h-[150px] resize-none"
+              disabled={isUpdating}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsEditing(false)}
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleEdit}
+              disabled={isUpdating || !editContent.trim()}
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                </>
+              ) : (
+                'Save Changes'
               )}
             </Button>
           </DialogFooter>
