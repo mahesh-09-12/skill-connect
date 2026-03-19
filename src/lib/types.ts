@@ -24,9 +24,33 @@ export type Community = Prisma.CommunityGetPayload<{
 export type Discussion = Prisma.DiscussionGetPayload<{
   include: {
     author: true,
-    comments: true,
+    comments: {
+      include: {
+        user: true,
+        replies: {
+          include: {
+            user: true
+          }
+        }
+      }
+    },
     _count: {
-      select: { comments: true }
+      select: { comments: true, likes: true }
+    }
+  }
+}>;
+
+export type Comment = Prisma.CommentGetPayload<{
+  include: {
+    user: {
+      select: { id: true, name: true }
+    },
+    replies: {
+      include: {
+        user: {
+          select: { id: true, name: true }
+        }
+      }
     }
   }
 }>;

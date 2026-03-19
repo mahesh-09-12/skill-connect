@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Heart, MessageSquare, MoreHorizontal, Pencil, Trash2, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
@@ -40,11 +40,11 @@ interface PostCardProps {
       comments: number;
       likes: number;
     };
-    likes?: any[];
   };
+  isDetail?: boolean;
 }
 
-export default function PostCard({ post }: PostCardProps) {
+export default function PostCard({ post, isDetail = false }: PostCardProps) {
   const { user } = useUser();
   const { toast } = useToast();
   const router = useRouter();
@@ -60,12 +60,27 @@ export default function PostCard({ post }: PostCardProps) {
   const [editContent, setEditContent] = useState(post.content);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  useEffect(() => {
+    async function checkLikeStatus() {
+      if (!user) return;
+      try {
+        const res = await fetch(`/api/discussions/${post.id}/like-status`);
+        if (res.ok) {
+          const data = await res.json();
+          setIsLiked(data.liked);
+        }
+      } catch (err) {}
+    }
+    checkLikeStatus();
+  }, [post.id, user]);
+
   const postVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
   };
 
-  const handleLike = async () => {
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!user) {
       router.push('/login');
       return;
@@ -74,25 +89,39 @@ export default function PostCard({ post }: PostCardProps) {
     if (isLiking) return;
 
     setIsLiking(true);
+    // Optimistic update
+    const prevLiked = isLiked;
+    setIsLiked(!prevLiked);
+    setLikeCount(prev => prevLiked ? prev - 1 : prev + 1);
+
     try {
       const res = await fetch(`/api/discussions/${post.id}/like`, {
         method: 'POST',
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setIsLiked(data.liked);
-        setLikeCount(prev => data.liked ? prev + 1 : prev - 1);
+      if (!res.ok) {
+        // Rollback
+        setIsLiked(prevLiked);
+        setLikeCount(prev => prevLiked ? prev + 1 : prev - 1);
       }
     } catch (error) {
-      console.error('Like error:', error);
+      // Rollback
+      setIsLiked(prevLiked);
+      setLikeCount(prev => prevLiked ? prev + 1 : prev - 1);
     } finally {
       setIsLiking(false);
     }
   };
 
-  const handleCommentClick = () => {
-    router.push(`/communities/${post.communityId}/posts`);
+  const handleCommentClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isDetail) return;
+    router.push(`/communities/${post.communityId}/discussions/${post.id}`);
+  };
+
+  const handleCardClick = () => {
+    if (isDetail) return;
+    router.push(`/communities/${post.communityId}/discussions/${post.id}`);
   };
 
   const handleDelete = async () => {
@@ -105,7 +134,11 @@ export default function PostCard({ post }: PostCardProps) {
       if (res.ok) {
         toast({ title: 'Success', description: 'Discussion deleted' });
         setShowDeleteDialog(false);
-        router.refresh();
+        if (isDetail) {
+          router.push(`/communities/${post.communityId}`);
+        } else {
+          router.refresh();
+        }
       } else {
         const err = await res.json();
         throw new Error(err.message || 'Failed to delete');
@@ -144,7 +177,6 @@ export default function PostCard({ post }: PostCardProps) {
 
   const isAuthor = user?.id === post.authorId;
 
-  // Clean Markdown headers from display
   const cleanLine = (line: string) => {
     return line.replace(/^#+\s*/, "");
   };
@@ -155,7 +187,10 @@ export default function PostCard({ post }: PostCardProps) {
 
   return (
     <motion.div variants={postVariants} initial="hidden" animate="visible">
-      <Card className={isDeleting ? 'opacity-50 pointer-events-none' : ''}>
+      <Card 
+        className={`${isDeleting ? 'opacity-50 pointer-events-none' : ''} ${!isDetail ? 'cursor-pointer hover:border-primary/50 transition-colors' : ''}`}
+        onClick={handleCardClick}
+      >
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-4">
             <Avatar>
@@ -171,7 +206,7 @@ export default function PostCard({ post }: PostCardProps) {
           </div>
           
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="icon">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
@@ -181,7 +216,8 @@ export default function PostCard({ post }: PostCardProps) {
                 <>
                   <DropdownMenuItem 
                     className="cursor-pointer" 
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setEditContent(post.content);
                       setIsEditing(true);
                     }}
@@ -190,7 +226,10 @@ export default function PostCard({ post }: PostCardProps) {
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     className="cursor-pointer text-destructive" 
-                    onClick={() => setShowDeleteDialog(true)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteDialog(true);
+                    }}
                   >
                     <Trash2 className="mr-2 h-4 w-4" /> Delete
                   </DropdownMenuItem>
@@ -235,7 +274,7 @@ export default function PostCard({ post }: PostCardProps) {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>Delete Discussion</DialogTitle>
             <DialogDescription>
@@ -269,7 +308,7 @@ export default function PostCard({ post }: PostCardProps) {
 
       {/* Edit Dialog */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>Edit Discussion</DialogTitle>
             <DialogDescription>Make changes to your post below.</DialogDescription>
