@@ -45,29 +45,42 @@ async function getCurrentUserId() {
 }
 
 async function getCommunity(id: string): Promise<CommunityWithDiscussions | null> {
-    if (!id) return null;
+  if (!id || typeof id !== "string") {
+    return null;
+  }
+
+  try {
     const community = await prisma.community.findUnique({
-        where: { id },
-        include: {
-            discussions: {
-                include: {
-                    author: true,
-                    _count: {
-                      select: { comments: true, likes: true }
-                    }
-                },
-                orderBy: {
-                    createdAt: 'desc'
-                }
-            },
+      where: { id },
+      include: {
+        discussions: {
+          include: {
+            author: true,
+            _count: {
+              select: { comments: true, likes: true }
+            }
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
         },
-    } as any) as CommunityWithDiscussions | null;
-    return community;
+      },
+    });
+    return community as CommunityWithDiscussions | null;
+  } catch (error) {
+    console.error("Community fetch error:", error);
+    return null;
+  }
 }
 
 async function getTopContributors(communityId: string) {
+  try {
     const users = await prisma.user.findMany({ take: 3 });
-    return users.map(user => ({...user, title: "Contributor"}));
+    return users.map(user => ({ ...user, title: "Contributor" }));
+  } catch (error) {
+    console.error("Top contributors fetch error:", error);
+    return [];
+  }
 }
 
 export default async function CommunityDetailPage({ params }: { params: Promise<{ communityId: string }> }) {
@@ -108,7 +121,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
             </div>
             <div className="flex gap-3">
               <Button asChild size="lg" variant="secondary" className="font-bold border bg-muted text-foreground hover:bg-muted/80 shadow-lg">
-                 <Link href={`/communities/${community.id}/posts`}>View Discussions</Link>
+                <Link href={`/communities/${community.id}/posts`}>View Discussions</Link>
               </Button>
               <Button size="lg" className="font-bold shadow-lg">
                 Join Community
