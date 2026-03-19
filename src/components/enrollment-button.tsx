@@ -60,7 +60,7 @@ export default function EnrollmentButton({ courseId }: { courseId: string }) {
           description: 'Coins have been deducted from your wallet.',
         });
         setIsEnrolled(true);
-        router.refresh();
+        router.push(`/courses/${courseId}/learn`);
       } else {
         toast({
           variant: 'destructive',
@@ -92,7 +92,7 @@ export default function EnrollmentButton({ courseId }: { courseId: string }) {
       <Button 
         size="lg" 
         className="w-full font-bold h-12 text-base bg-green-600 hover:bg-green-700 text-white" 
-        onClick={() => router.push('/dashboard')}
+        onClick={() => router.push(`/courses/${courseId}/learn`)}
       >
         <PlayCircle className="mr-2 h-5 w-5" /> Continue Learning
       </Button>

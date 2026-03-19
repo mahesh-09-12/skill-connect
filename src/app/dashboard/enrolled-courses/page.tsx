@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -133,7 +134,7 @@ export default function EnrolledCoursesPage() {
                 </div>
 
                 <Button asChild className="w-full font-bold group mt-auto">
-                  <Link href={`/courses/${enrollment.course.id}`}>
+                  <Link href={`/courses/${enrollment.course.id}/learn`}>
                     Continue Learning <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>
                 </Button>

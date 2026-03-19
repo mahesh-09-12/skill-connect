@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect } from 'react';
@@ -183,7 +184,7 @@ export default function DashboardPage() {
                           title={course.title} 
                           progress={course.progress} 
                           nextLesson={course.nextLesson || "Next module"} 
-                          onContinue={() => router.push(`/courses/${course.id}`)}
+                          onContinue={() => router.push(`/courses/${course.id}/learn`)}
                         />
                       ))
                     )}
