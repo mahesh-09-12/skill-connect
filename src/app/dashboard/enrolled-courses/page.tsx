@@ -1,14 +1,13 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/use-user';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, GraduationCap, ArrowRight, User, Clock } from 'lucide-react';
+import { GraduationCap, ArrowRight, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -64,7 +63,7 @@ export default function EnrolledCoursesPage() {
           <Skeleton className="h-4 w-48" />
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-64 w-full" />)}
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-64 w-full rounded-2xl" />)}
         </div>
       </div>
     );
@@ -97,7 +96,7 @@ export default function EnrolledCoursesPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {enrollments.map((enrollment) => (
-            <Card key={enrollment.id} className="overflow-hidden group hover:shadow-md transition-shadow flex flex-col">
+            <Card key={enrollment.id} className="overflow-hidden group hover:shadow-md transition-shadow flex flex-col rounded-2xl border-primary/5">
               <div className="relative aspect-video w-full overflow-hidden">
                 <Image 
                   src={enrollment.course.thumbnailUrl} 
@@ -133,7 +132,7 @@ export default function EnrolledCoursesPage() {
                   <Progress value={enrollment.progress} className="h-1.5" />
                 </div>
 
-                <Button asChild className="w-full font-bold group mt-auto">
+                <Button asChild className="w-full font-bold group mt-auto rounded-xl">
                   <Link href={`/courses/${enrollment.course.id}/learn`}>
                     Continue Learning <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>

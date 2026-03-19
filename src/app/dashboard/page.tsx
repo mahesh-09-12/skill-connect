@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react';
@@ -88,14 +87,14 @@ export default function DashboardPage() {
               <Skeleton className="h-4 w-64" />
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full" />)}
+              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
             </div>
             <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
               <div className="lg:col-span-8 space-y-6">
-                 <Skeleton className="h-64 w-full" />
+                 <Skeleton className="h-64 w-full rounded-2xl" />
               </div>
               <div className="lg:col-span-4">
-                 <Skeleton className="h-96 w-full" />
+                 <Skeleton className="h-96 w-full rounded-2xl" />
               </div>
             </div>
           </div>
@@ -162,16 +161,16 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-bold">Your Learning Progress</h2>
-                    <Button variant="outline" size="sm" onClick={handleExploreCourses}>
+                    <Button variant="outline" size="sm" onClick={handleExploreCourses} className="font-bold">
                       Explore Courses
                     </Button>
                   </div>
                   <div className="grid gap-4">
                     {data?.enrolledCourses.length === 0 ? (
-                      <Card>
+                      <Card className="rounded-2xl border-dashed">
                         <CardContent className="p-10 text-center space-y-4">
                           <p className="text-muted-foreground">You haven't enrolled in any courses yet.</p>
-                          <Button onClick={handleExploreCourses} variant="outline">
+                          <Button onClick={handleExploreCourses} variant="outline" className="font-bold">
                             Explore Courses
                           </Button>
                         </CardContent>
@@ -194,22 +193,22 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-bold">Course Management</h2>
-                    <Button size="sm" className="gap-2" onClick={handleCreateCourse}>
+                    <Button size="sm" className="gap-2 font-bold" onClick={handleCreateCourse}>
                       <Plus className="h-4 w-4" /> Create Course
                     </Button>
                   </div>
-                  <Card>
+                  <Card className="rounded-2xl shadow-sm border-primary/5">
                       <CardContent className="p-10 text-center space-y-4">
                           <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                             <BookOpen className="h-6 w-6" />
                           </div>
                           <div className="space-y-2">
-                            <p className="font-semibold text-lg">Become a Creator</p>
+                            <p className="font-black text-lg">Become a Creator</p>
                             <p className="text-muted-foreground text-sm max-w-xs mx-auto">
                               Anyone can create a course on SkillConnect. Earn 50 coins for every course you publish!
                             </p>
                           </div>
-                          <Button variant="outline" onClick={handleManageCourses}>Manage Your Courses</Button>
+                          <Button variant="outline" onClick={handleManageCourses} className="font-bold">Manage Your Courses</Button>
                       </CardContent>
                   </Card>
                 </div>
@@ -224,7 +223,7 @@ export default function DashboardPage() {
 
 function StatsCard({ title, value, icon: Icon, color, bg }: any) {
   return (
-    <Card className="border-none shadow-sm bg-card transition-transform hover:scale-[1.02]">
+    <Card className="border-none shadow-sm bg-card transition-transform hover:scale-[1.02] rounded-2xl">
         <CardContent className="p-6">
             <div className="flex items-center justify-between">
                 <div className={`p-3 rounded-xl ${bg}`}>
@@ -232,8 +231,8 @@ function StatsCard({ title, value, icon: Icon, color, bg }: any) {
                 </div>
             </div>
             <div className="mt-4">
-              <p className="text-sm font-medium text-muted-foreground">{title}</p>
-              <h3 className="text-2xl font-bold mt-1">{value}</h3>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">{title}</p>
+              <h3 className="text-2xl font-black mt-1">{value}</h3>
             </div>
         </CardContent>
     </Card>
@@ -242,25 +241,25 @@ function StatsCard({ title, value, icon: Icon, color, bg }: any) {
 
 function CourseProgressCard({ title, progress, nextLesson, onContinue }: any) {
   return (
-    <Card>
+    <Card className="rounded-2xl shadow-sm border-primary/5 group transition-all hover:shadow-md">
       <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-2 flex-grow">
-            <h4 className="font-bold text-lg">{title}</h4>
+            <h4 className="font-black text-lg group-hover:text-primary transition-colors">{title}</h4>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
               <span>{nextLesson}</span>
             </div>
             <div className="pt-2">
-              <div className="flex justify-between text-xs mb-1">
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-1">
                 <span>Overall Progress</span>
-                <span className="font-bold">{progress}%</span>
+                <span className="text-primary">{progress}%</span>
               </div>
               <Progress value={progress} className="h-2" />
             </div>
           </div>
-          <Button onClick={onContinue} className="w-full sm:w-auto">
-                Continue <ChevronRight className="ml-1 h-4 w-4" />
+          <Button onClick={onContinue} className="w-full sm:w-auto font-bold h-12 px-6">
+                Continue <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Button>
         </div>
       </CardContent>
@@ -270,20 +269,20 @@ function CourseProgressCard({ title, progress, nextLesson, onContinue }: any) {
 
 function ActivitySidebar({ activities, onViewWallet }: { activities: any[], onViewWallet: () => void }) {
   return (
-    <Card>
+    <Card className="rounded-2xl shadow-sm border-primary/5 sticky top-24">
       <CardHeader>
-        <CardTitle className="text-lg">Recent Activity</CardTitle>
+        <CardTitle className="text-lg font-black">Recent Activity</CardTitle>
         <CardDescription>Stay up to date with your tribe</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {activities.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4">No recent activity found.</p>
+          <p className="text-sm text-muted-foreground py-4 italic">No recent activity found.</p>
         ) : (
           activities.map((item, i) => (
-            <div key={i} className="flex gap-4">
-              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
+            <div key={i} className="flex gap-4 group">
+              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0 group-hover:scale-150 transition-transform" />
               <div className="space-y-1">
-                <p className="text-sm font-medium leading-tight">{item.text}</p>
+                <p className="text-sm font-bold leading-tight group-hover:text-primary transition-colors">{item.text}</p>
                 <p className="text-xs text-muted-foreground">
                   {formatDistanceToNow(new Date(item.date), { addSuffix: true })}
                 </p>
@@ -291,7 +290,7 @@ function ActivitySidebar({ activities, onViewWallet }: { activities: any[], onVi
             </div>
           ))
         )}
-        <Button variant="ghost" onClick={onViewWallet} className="w-full text-primary text-xs h-8">
+        <Button variant="ghost" onClick={onViewWallet} className="w-full text-primary text-xs h-8 font-bold hover:bg-primary/5">
             View Coin History
         </Button>
       </CardContent>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -60,7 +59,7 @@ export default function EnrollmentButton({ courseId }: { courseId: string }) {
           description: 'Coins have been deducted from your wallet.',
         });
         setIsEnrolled(true);
-        router.push(`/courses/${courseId}/learn`);
+        router.refresh();
       } else {
         toast({
           variant: 'destructive',
@@ -91,7 +90,7 @@ export default function EnrollmentButton({ courseId }: { courseId: string }) {
     return (
       <Button 
         size="lg" 
-        className="w-full font-bold h-12 text-base bg-green-600 hover:bg-green-700 text-white" 
+        className="w-full font-bold h-12 text-base bg-green-600 hover:bg-green-700 text-white shadow-lg" 
         onClick={() => router.push(`/courses/${courseId}/learn`)}
       >
         <PlayCircle className="mr-2 h-5 w-5" /> Continue Learning
@@ -102,7 +101,7 @@ export default function EnrollmentButton({ courseId }: { courseId: string }) {
   return (
     <Button 
       size="lg" 
-      className="w-full font-bold h-12 text-base" 
+      className="w-full font-bold h-12 text-base shadow-lg" 
       onClick={handleEnroll}
       disabled={loading}
     >
