@@ -52,9 +52,11 @@ export async function POST(
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: string };
     const { content } = await req.json();
 
-    if (!content?.trim()) {
-      return NextResponse.json({ message: 'Content is required' }, { status: 400 });
+    if (!content || !content.trim()) {
+      return NextResponse.json({ message: 'Comment content is required' }, { status: 400 });
     }
+
+    console.log("Posting comment:", { discussionId, content: content.trim(), userId: decoded.userId });
 
     const comment = await prisma.comment.create({
       data: {
@@ -63,13 +65,18 @@ export async function POST(
         userId: decoded.userId,
       },
       include: {
-        user: { select: { id: true, name: true } }
+        user: { select: { id: true, name: true } },
+        replies: {
+          include: {
+            user: { select: { id: true, name: true } }
+          }
+        }
       }
     });
 
     return NextResponse.json(comment, { status: 201 });
   } catch (error: any) {
-    console.error("Comment creation error:", error);
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+    console.error("Comment API error:", error);
+    return NextResponse.json({ message: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

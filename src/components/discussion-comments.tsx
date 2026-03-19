@@ -53,41 +53,71 @@ export default function DiscussionComments({ discussionId }: DiscussionCommentsP
   }, [discussionId]);
 
   const handleSubmitComment = async () => {
-    if (!newComment.trim()) return;
+    const trimmedContent = newComment.trim();
+    if (!trimmedContent) return;
+    
     setSubmitting(true);
+    console.log("Posting comment:", trimmedContent);
+
     try {
       const res = await fetch(`/api/discussions/${discussionId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newComment }),
+        body: JSON.stringify({ content: trimmedContent }),
       });
+
+      const data = await res.json();
+
       if (res.ok) {
         setNewComment('');
-        fetchComments();
+        // Option A: Immediately update local state for instant feedback
+        setComments(prev => [data, ...prev]);
+        toast({ title: "Success", description: "Comment posted!" });
+      } else {
+        throw new Error(data.message || "Failed to post comment");
       }
-    } catch (err) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to post comment' });
+    } catch (err: any) {
+      console.error("Comment submit error:", err);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Error', 
+        description: err.message || 'Failed to post comment' 
+      });
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleReply = async (parentId: string) => {
-    if (!replyContent.trim()) return;
+    const trimmedReply = replyContent.trim();
+    if (!trimmedReply) return;
+
     setSubmitting(true);
     try {
       const res = await fetch(`/api/comments/${parentId}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: replyContent }),
+        body: JSON.stringify({ content: trimmedReply }),
       });
+
+      const data = await res.json();
+
       if (res.ok) {
         setReplyContent('');
         setReplyingTo(null);
+        // Refresh to show nested reply correctly
         fetchComments();
+        toast({ title: "Success", description: "Reply posted!" });
+      } else {
+        throw new Error(data.message || "Failed to post reply");
       }
-    } catch (err) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to post reply' });
+    } catch (err: any) {
+      console.error("Reply submit error:", err);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Error', 
+        description: err.message || 'Failed to post reply' 
+      });
     } finally {
       setSubmitting(false);
     }
@@ -97,10 +127,12 @@ export default function DiscussionComments({ discussionId }: DiscussionCommentsP
     return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
 
+  const totalComments = comments.length + comments.reduce((acc, c) => acc + (c.replies?.length || 0), 0);
+
   return (
     <div className="space-y-8 mt-8">
       <h3 className="text-xl font-bold flex items-center gap-2">
-        Comments ({comments.length + comments.reduce((acc, c) => acc + c.replies.length, 0)})
+        Comments ({totalComments})
       </h3>
 
       {user ? (
@@ -115,6 +147,7 @@ export default function DiscussionComments({ discussionId }: DiscussionCommentsP
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               className="min-h-[100px] resize-none"
+              disabled={submitting}
             />
             <div className="flex justify-end">
               <Button onClick={handleSubmitComment} disabled={submitting || !newComment.trim()}>
@@ -165,10 +198,12 @@ export default function DiscussionComments({ discussionId }: DiscussionCommentsP
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
                         className="min-h-[80px] text-sm resize-none"
+                        disabled={submitting}
                       />
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setReplyingTo(null)}>Cancel</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setReplyingTo(null)} disabled={submitting}>Cancel</Button>
                         <Button size="sm" onClick={() => handleReply(comment.id)} disabled={submitting || !replyContent.trim()}>
+                          {submitting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                           Post Reply
                         </Button>
                       </div>
@@ -179,7 +214,7 @@ export default function DiscussionComments({ discussionId }: DiscussionCommentsP
             </div>
 
             {/* Replies */}
-            {comment.replies.length > 0 && (
+            {comment.replies && comment.replies.length > 0 && (
               <div className="ml-12 space-y-4 border-l pl-4">
                 {comment.replies.map((reply) => (
                   <div key={reply.id} className="flex gap-3">
