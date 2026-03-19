@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 
-export async function POST(req: NextRequest) {
+/**
+ * Alternative enrollment route using path parameters.
+ * Note: The existing UI currently uses /api/courses/enroll with a JSON body.
+ */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ courseId: string }> }
+) {
+  const { courseId } = await params;
   const token = req.cookies.get('token')?.value;
 
   if (!token) {
@@ -11,12 +19,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: string };
-    const body = await req.json();
-    const { courseId } = body;
-
-    if (!courseId) {
-      return NextResponse.json({ message: 'Course ID is required' }, { status: 400 });
-    }
+    const userId = decoded.userId;
 
     const course = await prisma.course.findUnique({
       where: { id: courseId },
@@ -27,45 +30,39 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: userId },
     });
 
     if (!user) {
-      return NextResponse.json({ message: 'User account not found' }, { status: 404 });
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
-    // Check if already enrolled
     const existingEnrollment = await prisma.enrollment.findUnique({
       where: {
         userId_courseId: {
-          userId: user.id,
-          courseId: course.id,
+          userId,
+          courseId,
         },
       },
     });
 
     if (existingEnrollment) {
-      return NextResponse.json({ message: 'You are already enrolled in this course' }, { status: 400 });
+      return NextResponse.json({ message: 'Already enrolled' }, { status: 400 });
     }
 
-    // Check coin balance
     if (user.coinBalance < course.priceInCoins) {
-      return NextResponse.json({ 
-        message: `Insufficient coins. This course costs ${course.priceInCoins} coins but you only have ${user.coinBalance}.` 
-      }, { status: 400 });
+      return NextResponse.json({ message: 'Insufficient coins' }, { status: 400 });
     }
 
-    // Atomic transaction for enrollment and coin deduction
     const result = await prisma.$transaction([
       prisma.enrollment.create({
         data: {
-          userId: user.id,
-          courseId: course.id,
-          progress: 0,
+          userId,
+          courseId,
         },
       }),
       prisma.user.update({
-        where: { id: user.id },
+        where: { id: userId },
         data: {
           coinBalance: {
             decrement: course.priceInCoins,
@@ -74,7 +71,7 @@ export async function POST(req: NextRequest) {
       }),
       prisma.coinTransaction.create({
         data: {
-          userId: user.id,
+          userId,
           amount: -course.priceInCoins,
           type: 'SPEND',
           reason: `Enrolled in course: ${course.title}`,
@@ -82,17 +79,9 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Successfully enrolled!', 
-      enrollment: result[0],
-      newBalance: result[1].coinBalance 
-    });
+    return NextResponse.json({ success: true, enrollment: result[0] });
   } catch (error: any) {
     console.error('Enrollment error:', error);
-    if (error.name === 'JsonWebTokenError') {
-      return NextResponse.json({ message: 'Invalid or expired session' }, { status: 401 });
-    }
-    return NextResponse.json({ message: 'An unexpected error occurred during enrollment' }, { status: 500 });
+    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
