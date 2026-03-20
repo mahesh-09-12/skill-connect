@@ -34,18 +34,16 @@ export default function AddLessonButton({ moduleId }: AddLessonButtonProps) {
     setLoading(true);
 
     try {
-      const formData = new FormData();
       const videoInput = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement;
       const videoFile = videoInput.files?.[0];
+      
+      let videoUrl = "";
+      let duration = "0:00";
 
-      formData.append('moduleId', moduleId);
-      formData.append('title', title.trim());
-      formData.append('description', description.trim());
-
-      let formattedDuration = "0:00";
-
+      // 1. Upload to Cloudinary if file exists
       if (videoFile) {
-        formattedDuration = await new Promise<string>((resolve) => {
+        // Calculate duration locally before upload
+        duration = await new Promise<string>((resolve) => {
           const video = document.createElement('video');
           video.preload = 'metadata';
           video.onloadedmetadata = () => {
@@ -55,27 +53,46 @@ export default function AddLessonButton({ moduleId }: AddLessonButtonProps) {
             const seconds = durationSeconds % 60;
             resolve(`${minutes}:${seconds.toString().padStart(2, '0')}`);
           };
-          video.onerror = () => {
-            resolve("0:00");
-          };
+          video.onerror = () => resolve("0:00");
           video.src = URL.createObjectURL(videoFile);
         });
 
-        formData.append('video', videoFile);
-        formData.append('duration', formattedDuration);
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', videoFile);
+
+        const uploadRes = await fetch("/api/upload/video", {
+          method: "POST",
+          body: uploadFormData,
+        });
+
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json();
+          throw new Error(err.error || "Failed to upload video to cloud");
+        }
+
+        const uploadData = await uploadRes.json();
+        videoUrl = uploadData.url;
       }
 
-      const res = await fetch("/api/lessons", {
+      // 2. Save Lesson to DB
+      const lessonRes = await fetch("/api/lessons", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          moduleId,
+          title: title.trim(),
+          description: description.trim(),
+          duration,
+          videoUrl
+        }),
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create lesson");
+      if (!lessonRes.ok) {
+        const err = await lessonRes.json();
+        throw new Error(err.error || "Failed to create lesson record");
       }
 
-      toast({ title: "Success", description: "Lesson created successfully" });
+      toast({ title: "Success", description: "Lesson created and video uploaded successfully" });
       setOpen(false);
       setTitle('');
       setDescription('');
@@ -84,7 +101,7 @@ export default function AddLessonButton({ moduleId }: AddLessonButtonProps) {
       toast({ 
         variant: "destructive", 
         title: "Error", 
-        description: error.message || "Could not create lesson" 
+        description: error.message || "Could not complete lesson creation" 
       });
     } finally {
       setLoading(false);
@@ -102,7 +119,7 @@ export default function AddLessonButton({ moduleId }: AddLessonButtonProps) {
           <DialogHeader>
             <DialogTitle>Add New Lesson</DialogTitle>
             <DialogDescription>
-              Create a new educational lesson for this module.
+              Create a new educational lesson. Videos will be stored securely in the cloud.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6 py-4">
@@ -146,7 +163,7 @@ export default function AddLessonButton({ moduleId }: AddLessonButtonProps) {
                   disabled={loading}
                 />
                 <p className="text-[11px] text-muted-foreground italic px-1">
-                  Supported formats: MP4, MOV, WEBM. Maximum size: 50MB.
+                  Videos are uploaded to Cloudinary. Large files may take a few moments.
                 </p>
               </div>
             </div>
@@ -158,7 +175,7 @@ export default function AddLessonButton({ moduleId }: AddLessonButtonProps) {
               <Button type="submit" disabled={loading || !title.trim()} className="min-w-[120px] font-bold">
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
                   </>
                 ) : (
                   'Create Lesson'

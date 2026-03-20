@@ -36,8 +36,11 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
           if (found) {
             setCourse(found);
             // Default to first lesson of first module
-            if (found.modules?.[0]?.lessons?.length > 0) {
-              setCurrentLesson(found.modules[0].lessons[0]);
+            if (found.modules && found.modules.length > 0) {
+              const firstModule = found.modules[0];
+              if (firstModule.lessons && firstModule.lessons.length > 0) {
+                setCurrentLesson(firstModule.lessons[0]);
+              }
             }
           }
         }
@@ -50,14 +53,7 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
     fetchCourseData();
   }, [courseId]);
 
-  useEffect(() => {
-    if (currentLesson) {
-      console.log("Current Lesson Updated:", currentLesson.title, "URL:", currentLesson.videoUrl);
-    }
-  }, [currentLesson]);
-
   const handleCompleteLesson = () => {
-    // Logic for marking complete can be added here
     alert("Great job! Lesson marked as complete.");
   };
 
@@ -65,7 +61,7 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse font-medium">Preparing your classroom...</p>
+        <p className="text-muted-foreground animate-pulse font-medium">Entering classroom...</p>
       </div>
     );
   }
@@ -106,6 +102,7 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
                   controls 
                   className="w-full h-full"
                   poster={course.thumbnailUrl}
+                  autoPlay
                 >
                   <source src={currentLesson.videoUrl} type="video/mp4" />
                   Your browser does not support the video tag.
@@ -117,7 +114,7 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
                   </div>
                   <div className="space-y-1">
                     <p className="text-white text-lg font-bold">No video for this lesson</p>
-                    <p className="text-gray-400 text-sm">Review the notes below or move to the next lesson.</p>
+                    <p className="text-gray-400 text-sm">Review the notes below or select another lesson.</p>
                   </div>
                 </div>
               )}
@@ -134,7 +131,7 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
                     </div>
                     {currentLesson?.videoUrl && (
                       <div className="flex items-center gap-1.5 text-primary">
-                        <Video className="h-4 w-4" /> Video Tutorial
+                        <Video className="h-4 w-4" /> Cloud Hosted
                       </div>
                     )}
                   </div>
@@ -147,7 +144,7 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <h3 className="text-xl font-black mb-4">Lesson Overview</h3>
                 <p className="text-muted-foreground leading-relaxed text-lg whitespace-pre-wrap">
-                  {currentLesson?.description || "In this lesson, we cover key concepts and practical applications. Follow the video and apply the steps in your own environment."}
+                  {currentLesson?.description || "Follow the tutorial video and practice the concepts demonstrated."}
                 </p>
               </div>
             </CardContent>
