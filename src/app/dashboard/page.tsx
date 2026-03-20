@@ -11,13 +11,13 @@ import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 
 interface DashboardData {
+  enrolledCourses: number;
+  communities: number;
   stats: {
-    courseCount: number;
-    communityCount: number;
     streak: number;
     rank: string;
   };
-  enrolledCourses: {
+  enrolledCoursesList: {
     id: string;
     title: string;
     progress: number;
@@ -56,27 +56,15 @@ export default function DashboardPage() {
     }, [user]);
 
     const handleExploreCourses = () => {
-      try {
-        router.push("/courses");
-      } catch (error) {
-        console.error("Navigation error:", error);
-      }
+      router.push("/courses");
     };
 
     const handleManageCourses = () => {
-      try {
-        router.push("/dashboard/courses");
-      } catch (error) {
-        console.error("Navigation error:", error);
-      }
+      router.push("/dashboard/courses");
     };
 
     const handleCreateCourse = () => {
-      try {
-        router.push("/courses/create");
-      } catch (error) {
-        console.error("Navigation error:", error);
-      }
+      router.push("/courses/create");
     };
 
     if (userLoading || (user && loading)) {
@@ -106,7 +94,7 @@ export default function DashboardPage() {
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
             <h1 className="text-2xl font-bold">Access Denied</h1>
             <p className="text-muted-foreground max-w-sm">Please log in to view your personalized dashboard and progress.</p>
-            <Button onClick={() => router.push('/login')}>Log In Now</Button>
+            <Button onClick={() => router.push('/login')} className="cursor-pointer">Log In Now</Button>
           </div>
         );
     }
@@ -128,14 +116,14 @@ export default function DashboardPage() {
             <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <StatsCard 
                   title="Courses Joined" 
-                  value={data?.stats.courseCount || 0} 
+                  value={data?.enrolledCourses || 0} 
                   icon={BookOpen} 
                   color="text-blue-500" 
                   bg="bg-blue-500/10" 
                 />
                 <StatsCard 
                   title="Communities" 
-                  value={data?.stats.communityCount || 0} 
+                  value={data?.communities || 0} 
                   icon={Users} 
                   color="text-purple-500" 
                   bg="bg-purple-500/10" 
@@ -161,22 +149,22 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-bold">Your Learning Progress</h2>
-                    <Button variant="outline" size="sm" onClick={handleExploreCourses} className="font-bold">
+                    <Button variant="outline" size="sm" onClick={handleExploreCourses} className="font-bold cursor-pointer">
                       Explore Courses
                     </Button>
                   </div>
                   <div className="grid gap-4">
-                    {data?.enrolledCourses.length === 0 ? (
+                    {data?.enrolledCoursesList.length === 0 ? (
                       <Card className="rounded-2xl border-dashed">
                         <CardContent className="p-10 text-center space-y-4">
                           <p className="text-muted-foreground">You haven't enrolled in any courses yet.</p>
-                          <Button onClick={handleExploreCourses} variant="outline" className="font-bold">
+                          <Button onClick={handleExploreCourses} variant="outline" className="font-bold cursor-pointer">
                             Explore Courses
                           </Button>
                         </CardContent>
                       </Card>
                     ) : (
-                      data?.enrolledCourses.map(course => (
+                      data?.enrolledCoursesList.map(course => (
                         <CourseProgressCard 
                           key={course.id}
                           id={course.id}
@@ -193,7 +181,7 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-bold">Course Management</h2>
-                    <Button size="sm" className="gap-2 font-bold" onClick={handleCreateCourse}>
+                    <Button size="sm" className="gap-2 font-bold cursor-pointer" onClick={handleCreateCourse}>
                       <Plus className="h-4 w-4" /> Create Course
                     </Button>
                   </div>
@@ -208,7 +196,7 @@ export default function DashboardPage() {
                               Anyone can create a course on SkillConnect. Earn 50 coins for every course you publish!
                             </p>
                           </div>
-                          <Button variant="outline" onClick={handleManageCourses} className="font-bold">Manage Your Courses</Button>
+                          <Button variant="outline" onClick={handleManageCourses} className="font-bold cursor-pointer">Manage Your Courses</Button>
                       </CardContent>
                   </Card>
                 </div>
@@ -258,7 +246,7 @@ function CourseProgressCard({ title, progress, nextLesson, onContinue }: any) {
               <Progress value={progress} className="h-2" />
             </div>
           </div>
-          <Button onClick={onContinue} className="w-full sm:w-auto font-bold h-12 px-6">
+          <Button onClick={onContinue} className="w-full sm:w-auto font-bold h-12 px-6 cursor-pointer">
                 Continue <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Button>
         </div>
@@ -296,7 +284,7 @@ function ActivitySidebar({ activities, onViewWallet }: { activities: any[], onVi
             </div>
           ))
         )}
-        <Button variant="ghost" onClick={onViewWallet} className="w-full text-primary text-xs h-8 font-bold hover:bg-primary/5">
+        <Button variant="ghost" onClick={onViewWallet} className="w-full text-primary text-xs h-8 font-bold hover:bg-primary/5 cursor-pointer">
             View Coin History
         </Button>
       </CardContent>

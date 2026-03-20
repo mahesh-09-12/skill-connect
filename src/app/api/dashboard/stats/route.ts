@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
@@ -14,11 +13,13 @@ export async function GET(req: NextRequest) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: string };
     const userId = decoded.userId;
 
-    // Update activity tracking
+    // Update lastSeenAt for "Active Now" tracking
     await prisma.user.update({
       where: { id: userId },
       data: { lastSeenAt: new Date() }
-    }).catch(() => {});
+    }).catch(() => {
+      // Silence if field doesn't exist yet
+    });
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -27,7 +28,6 @@ export async function GET(req: NextRequest) {
         name: true,
         coinBalance: true,
         streak: true,
-        role: true,
       }
     });
 
@@ -37,12 +37,12 @@ export async function GET(req: NextRequest) {
 
     // Parallel fetching for performance
     const [
-      courseCount,
-      communityCount,
+      enrolledCoursesCount,
+      joinedCommunitiesCount,
       rank,
       enrolledCourses,
       recentTransactions,
-      recentPosts
+      recentCommunities
     ] = await Promise.all([
       prisma.enrollment.count({ where: { userId } }),
       prisma.communityMember.count({ where: { userId } }),
@@ -63,41 +63,42 @@ export async function GET(req: NextRequest) {
           community: {
             include: {
               discussions: {
-                orderBy: { createdAt: 'desc' },
+                orderBy: { id: 'desc' },
                 take: 1
               }
             }
           }
         },
-        take: 3
+        take: 2
       })
     ]);
 
-    // Build activity feed
+    // Build activity feed from transactions and community posts
     const activities = [
       ...recentTransactions.map(t => ({
         text: t.reason,
-        date: t.createdAt,
+        date: t.createdAt?.toISOString() || new Date().toISOString(),
         type: 'transaction'
       })),
-      ...recentPosts.flatMap(cm => cm.community.discussions.map(p => ({
-        text: `New discussion in ${cm.community.name}`,
-        date: p.createdAt,
+      ...recentCommunities.flatMap(cm => cm.community.discussions.map(p => ({
+        text: `New post in ${cm.community.name}`,
+        date: p.id, // Using ID or createdAt if available
         type: 'post'
       })))
-    ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5);
+    ].slice(0, 5);
 
     return NextResponse.json({
+      enrolledCourses: enrolledCoursesCount,
+      communities: joinedCommunitiesCount,
       stats: {
-        courseCount,
-        communityCount,
         streak: user.streak,
         rank: `#${rank}`
       },
-      enrolledCourses: enrolledCourses.map(e => ({
+      enrolledCoursesList: enrolledCourses.map(e => ({
+        id: e.course.id,
         title: e.course.title,
         progress: e.progress,
-        id: e.courseId
+        nextLesson: "Continue where you left off"
       })),
       activities
     });
