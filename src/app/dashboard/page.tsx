@@ -284,7 +284,7 @@ function ActivitySidebar({ activities, onViewWallet }: { activities: any[], onVi
             </div>
           ))
         )}
-        <Button variant="ghost" onClick={onViewWallet} className="w-full text-primary text-xs h-8 font-bold hover:bg-primary/5 cursor-pointer">
+        <Button variant="ghost" onClick={onViewWallet} className="w-full text-primary text-xs h-8 font-bold hover:bg-primary/5 hover:text-zinc-800 cursor-pointer">
             View Coin History
         </Button>
       </CardContent>
