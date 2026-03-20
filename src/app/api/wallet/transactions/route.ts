@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
+import { TransactionType } from '@prisma/client';
 
 /**
  * @fileOverview Fetches transaction history for the authenticated user.
- * Includes fallback logic to create a Signup Bonus if user has coins but no history.
- * Uses safe ordering to prevent crashes on missing timestamp columns.
+ * Uses proper chronological ordering by createdAt.
  */
 
 export async function GET(req: NextRequest) {
@@ -19,10 +19,9 @@ export async function GET(req: NextRequest) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: string };
     const userId = decoded.userId;
 
-    // Fetch transactions using ID for order as a safe fallback if createdAt is inconsistent
     let transactions = await prisma.coinTransaction.findMany({
       where: { userId },
-      orderBy: { id: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 50
     });
 
@@ -38,7 +37,7 @@ export async function GET(req: NextRequest) {
           data: {
             userId,
             amount: user.coinBalance,
-            type: 'SIGNUP_BONUS',
+            type: TransactionType.SIGNUP_BONUS,
             reason: 'Account Opening Balance',
           }
         });
@@ -46,7 +45,7 @@ export async function GET(req: NextRequest) {
         // Re-fetch transactions
         transactions = await prisma.coinTransaction.findMany({
           where: { userId },
-          orderBy: { id: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 50
         });
       }

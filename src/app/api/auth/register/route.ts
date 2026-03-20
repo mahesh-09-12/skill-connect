@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
-import { Role } from '@prisma/client';
+import { Role, TransactionType } from '@prisma/client';
 
 const registerSchema = z.object({
   name: z.string().min(3),
@@ -13,6 +13,7 @@ const registerSchema = z.object({
 
 /**
  * @fileOverview Handles user registration and ensures atomic balance + transaction creation.
+ * Uses Prisma $transaction to guarantee that both user and welcome bonus are created or neither.
  */
 
 export async function POST(req: NextRequest) {
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
     const initialCoins = 100;
 
     const user = await prisma.$transaction(async (tx) => {
+      // 1. Create the user
       const newUser = await tx.user.create({
         data: {
           name,
@@ -39,11 +41,13 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // 2. Create the initial transaction record
+      // Validation: Type 'SIGNUP_BONUS' is strictly enforced by PostgreSQL Enum
       await tx.coinTransaction.create({
         data: {
           userId: newUser.id,
           amount: initialCoins,
-          type: 'SIGNUP_BONUS',
+          type: TransactionType.SIGNUP_BONUS,
           reason: 'Welcome Bonus',
         },
       });
@@ -55,7 +59,7 @@ export async function POST(req: NextRequest) {
       message: 'User created successfully', 
       user: { id: user.id, name: user.name, email: user.email, role: user.role } 
     }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ message: 'Invalid input', errors: error.errors }, { status: 400 });
     }

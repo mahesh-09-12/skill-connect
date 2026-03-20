@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
+import { TransactionType } from '@prisma/client';
 
 /**
  * @fileOverview Handles the daily coin reward logic.
@@ -30,10 +31,10 @@ export async function POST(req: NextRequest) {
     const lastTransaction = await prisma.coinTransaction.findFirst({
       where: {
         userId: userId,
-        type: 'DAILY_REWARD',
+        type: TransactionType.DAILY_REWARD,
       },
       orderBy: {
-        id: 'desc', // Safe fallback if createdAt is inconsistent
+        createdAt: 'desc',
       },
     });
 
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
         data: {
           userId: userId,
           amount: rewardAmount,
-          type: 'DAILY_REWARD',
+          type: TransactionType.DAILY_REWARD,
           reason: 'Daily Check-in Reward',
         },
       }),

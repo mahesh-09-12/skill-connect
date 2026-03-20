@@ -14,30 +14,20 @@ export async function GET(
         discussionId,
         parentId: null 
       },
-      select: {
-        id: true,
-        content: true,
-        authorId: true,
-        discussionId: true,
-        parentId: true,
+      include: {
         author: {
           select: { id: true, name: true }
         },
         replies: {
-          select: {
-            id: true,
-            content: true,
-            authorId: true,
-            discussionId: true,
-            parentId: true,
+          include: {
             author: {
               select: { id: true, name: true }
             }
           },
-          orderBy: { id: 'asc' }
+          orderBy: { createdAt: 'asc' }
         }
       },
-      orderBy: { id: 'desc' }
+      orderBy: { createdAt: 'desc' }
     });
 
     return NextResponse.json(comments);
@@ -77,20 +67,10 @@ export async function POST(
         discussionId,
         authorId: decoded.userId,
       },
-      select: {
-        id: true,
-        content: true,
-        authorId: true,
-        discussionId: true,
-        parentId: true,
+      include: {
         author: { select: { id: true, name: true } },
         replies: {
-          select: {
-            id: true,
-            content: true,
-            authorId: true,
-            discussionId: true,
-            parentId: true,
+          include: {
             author: { select: { id: true, name: true } }
           }
         }
