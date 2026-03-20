@@ -7,6 +7,7 @@ import AnimatedBackground from './animated-background';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import { HERO_IMAGE } from '@/lib/constants/images';
 
 export default function Hero() {
   const containerVariants = {
@@ -90,11 +91,11 @@ export default function Hero() {
               <div className="absolute inset-0 bg-accent/10 rounded-3xl rotate-2 transition-transform hover:rotate-0 duration-500" />
               <div className="relative h-full w-full overflow-hidden rounded-3xl border shadow-2xl bg-card">
                  <Image 
-                  src="https://picsum.photos/seed/skillconnect/800/800"
-                  alt="SkillConnect Learning Experience"
+                  src={HERO_IMAGE}
+                  alt="Students collaborating together on laptops"
                   fill
                   className="object-cover"
-                  data-ai-hint="online learning"
+                  data-ai-hint="students collaborating"
                   priority
                 />
               </div>

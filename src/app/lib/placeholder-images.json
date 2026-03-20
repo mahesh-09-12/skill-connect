@@ -1,0 +1,28 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero-education",
+      "description": "Students collaborating with laptops in a modern environment",
+      "imageUrl": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "students collaborating"
+    },
+    {
+      "id": "default-course",
+      "description": "Online learning setup with laptop and notes",
+      "imageUrl": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "online learning"
+    },
+    {
+      "id": "default-community",
+      "description": "Group of diverse people in a community discussion",
+      "imageUrl": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "community discussion"
+    },
+    {
+      "id": "coding-workspace",
+      "description": "Clean coding workspace with monitors",
+      "imageUrl": "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop",
+      "imageHint": "coding workspace"
+    }
+  ]
+}

@@ -9,12 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DEFAULT_COURSE_IMAGE } from '@/lib/constants/images';
 
 interface CourseCardProps {
   course: Course;
 }
 
 export default function CourseCard({ course }: CourseCardProps) {
+  const thumbnailUrl = course.thumbnailUrl || DEFAULT_COURSE_IMAGE;
+
   return (
     <motion.div
       whileHover={{ y: -5 }}
@@ -24,7 +27,7 @@ export default function CourseCard({ course }: CourseCardProps) {
       <Card className="flex h-full flex-col overflow-hidden border-primary/10 shadow-sm transition-shadow hover:shadow-md">
         <div className="relative aspect-video w-full overflow-hidden">
           <Image
-            src={course.thumbnailUrl}
+            src={thumbnailUrl}
             alt={course.title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -46,7 +49,7 @@ export default function CourseCard({ course }: CourseCardProps) {
           </CardTitle>
           <div className="flex items-center gap-2 pt-2">
             <Avatar className="h-6 w-6 border">
-              <AvatarImage src={course.instructor.avatarUrl || `https://picsum.photos/seed/${course.instructorId}/100/100`} />
+              <AvatarImage src={`https://picsum.photos/seed/${course.instructorId}/100/100`} />
               <AvatarFallback>{course.instructor.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <span className="text-xs font-medium text-muted-foreground truncate">{course.instructor.name}</span>

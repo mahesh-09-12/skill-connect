@@ -29,6 +29,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, ArrowLeft, Coins } from 'lucide-react';
 import Link from 'next/link';
+import { DEFAULT_COURSE_IMAGE } from '@/lib/constants/images';
 
 const courseSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
@@ -58,7 +59,7 @@ export default function CreateCoursePage() {
     defaultValues: {
       title: '',
       description: '',
-      thumbnailUrl: 'https://picsum.photos/seed/newcourse/800/450',
+      thumbnailUrl: DEFAULT_COURSE_IMAGE,
       priceInCoins: 50,
       level: 'Beginner',
       language: 'English',

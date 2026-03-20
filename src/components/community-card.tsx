@@ -8,12 +8,15 @@ import { Community } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { DEFAULT_COMMUNITY_IMAGE } from '@/lib/constants/images';
 
 interface CommunityCardProps {
   community: Community;
 }
 
 export default function CommunityCard({ community }: CommunityCardProps) {
+  const thumbnailUrl = community.thumbnailUrl || DEFAULT_COMMUNITY_IMAGE;
+
   return (
     <motion.div
       whileHover={{ y: -5 }}
@@ -23,7 +26,7 @@ export default function CommunityCard({ community }: CommunityCardProps) {
       <Card className="flex h-full flex-col overflow-hidden border-primary/10 shadow-sm transition-shadow hover:shadow-md">
         <div className="relative aspect-[16/10] w-full overflow-hidden">
           <Image
-            src={community.thumbnailUrl}
+            src={thumbnailUrl}
             alt={community.name}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
