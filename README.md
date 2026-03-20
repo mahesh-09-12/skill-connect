@@ -135,7 +135,7 @@ src/
 ### 1. Clone Repo
 
 ```bash
-git clone https://github.com/your-username/skillconnect.git
+git clone [https://github.com/mahesh-09-12/skillconnect.git](https://github.com/mahesh-09-12/skill-connect.git)
 cd skillconnect
 ```
 
