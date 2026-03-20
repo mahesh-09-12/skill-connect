@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, use } from 'react';
@@ -258,11 +259,11 @@ export default function LessonsPage({
             {selectedLesson?.videoUrl ? (
               <video controls className="w-full h-full rounded-lg bg-black">
                 <source
-                  src={selectedLesson.videoUrl.startsWith('/') ? selectedLesson.videoUrl : `/${selectedLesson.videoUrl}`}
+                  src={selectedLesson.videoUrl.startsWith('http') ? selectedLesson.videoUrl : (selectedLesson.videoUrl.startsWith('/') ? selectedLesson.videoUrl : `/${selectedLesson.videoUrl}`)}
                   type="video/mp4"
                 />
                 <source
-                  src={selectedLesson.videoUrl.startsWith('/') ? selectedLesson.videoUrl : `/${selectedLesson.videoUrl}`}
+                  src={selectedLesson.videoUrl.startsWith('http') ? selectedLesson.videoUrl : (selectedLesson.videoUrl.startsWith('/') ? selectedLesson.videoUrl : `/${selectedLesson.videoUrl}`)}
                   type="video/webm"
                 />
                 Your browser does not support the video tag.
