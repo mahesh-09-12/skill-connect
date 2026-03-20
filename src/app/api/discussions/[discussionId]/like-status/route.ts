@@ -23,6 +23,7 @@ export async function GET(
           discussionId,
         },
       },
+      select: { id: true }
     });
 
     return NextResponse.json({ liked: !!like });

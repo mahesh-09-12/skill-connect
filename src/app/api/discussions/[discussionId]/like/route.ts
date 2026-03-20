@@ -24,6 +24,7 @@ export async function POST(
           discussionId,
         },
       },
+      select: { id: true }
     });
 
     if (existingLike) {
@@ -39,6 +40,7 @@ export async function POST(
           userId,
           discussionId,
         },
+        select: { id: true }
       });
       return NextResponse.json({ liked: true });
     }

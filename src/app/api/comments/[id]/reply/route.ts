@@ -27,7 +27,8 @@ export async function POST(
     }
 
     const parentComment = await prisma.comment.findUnique({
-      where: { id: parentId }
+      where: { id: parentId },
+      select: { id: true, discussionId: true }
     });
 
     if (!parentComment) {
@@ -41,7 +42,12 @@ export async function POST(
         authorId: decoded.userId,
         parentId: parentId
       },
-      include: {
+      select: {
+        id: true,
+        content: true,
+        authorId: true,
+        discussionId: true,
+        parentId: true,
         author: { select: { id: true, name: true } }
       }
     });
