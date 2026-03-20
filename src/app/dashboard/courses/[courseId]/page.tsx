@@ -76,17 +76,33 @@ export default async function CourseEditorPage({
     redirect('/dashboard/courses');
   }
 
+  // Calculate earnings from transactions
+  const earningsData = await prisma.coinTransaction.aggregate({
+    where: {
+      userId: user.userId as string,
+      type: 'EARN',
+      reason: {
+        contains: course.title
+      }
+    },
+    _sum: {
+      amount: true
+    }
+  });
+
+  const totalEarnings = earningsData._sum.amount || 0;
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <Link 
           href="/dashboard/courses" 
-          className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+          className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors cursor-pointer"
         >
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to My Courses
         </Link>
         <div className="flex gap-2">
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="cursor-pointer">
             <Link href={`/courses/${course.id}`} className="flex items-center gap-2">
               <ExternalLink className="h-4 w-4" /> View Public Page
             </Link>
@@ -104,10 +120,10 @@ export default async function CourseEditorPage({
           <p className="text-muted-foreground max-w-2xl">Course Management Hub</p>
         </div>
         <div className="flex gap-3">
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="cursor-pointer">
              <Link href={`/dashboard/courses/${course.id}/edit`}>Edit Details</Link>
           </Button>
-          <Button asChild>
+          <Button asChild className="cursor-pointer">
              <Link href={`/dashboard/courses/${course.id}/modules`}>Manage Curriculum</Link>
           </Button>
         </div>
@@ -126,7 +142,7 @@ export default async function CourseEditorPage({
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{course.modules.length}</p>
-            <Button asChild variant="link" className="px-0 mt-4 text-primary">
+            <Button asChild variant="link" className="px-0 mt-4 text-primary cursor-pointer">
               <Link href={`/dashboard/courses/${course.id}/modules`} className="flex items-center">
                 Configure Modules <ChevronRight className="ml-1 h-4 w-4" />
               </Link>
@@ -146,7 +162,7 @@ export default async function CourseEditorPage({
             <p className="text-3xl font-bold">
               {course.modules.reduce((acc, m) => acc + m.lessons.length, 0)}
             </p>
-            <Button asChild variant="link" className="px-0 mt-4 text-primary">
+            <Button asChild variant="link" className="px-0 mt-4 text-primary cursor-pointer">
               <Link href={`/dashboard/courses/${course.id}/lessons`} className="flex items-center">
                 Manage Content <ChevronRight className="ml-1 h-4 w-4" />
               </Link>
@@ -163,8 +179,8 @@ export default async function CourseEditorPage({
             <CardDescription>Course revenue in coins</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">0</p>
-            <p className="text-xs text-muted-foreground mt-2">New course stats coming soon</p>
+            <p className="text-3xl font-bold">{totalEarnings}</p>
+            <p className="text-xs text-muted-foreground mt-2">Total coins from enrollments</p>
           </CardContent>
         </Card>
       </div>
