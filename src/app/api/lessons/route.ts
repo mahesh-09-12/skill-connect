@@ -36,19 +36,17 @@ export async function POST(req: NextRequest) {
       const filename = `${Date.now()}-${videoFile.name.replace(/\s+/g, '_')}`;
       const uploadDir = path.join(process.cwd(), "public", "uploads");
       
-      // Ensure the uploads directory exists inside public
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      // Convert File to Buffer and write to filesystem
       const arrayBuffer = await videoFile.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const filePath = path.join(uploadDir, filename);
       
       fs.writeFileSync(filePath, buffer);
       
-      // Store relative URL for public access
+      // Store relative URL for public access. Path must start with /
       videoUrl = `/uploads/${filename}`;
     }
 

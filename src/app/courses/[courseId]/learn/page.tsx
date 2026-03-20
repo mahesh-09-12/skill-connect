@@ -35,8 +35,8 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
           const found = data.courses.find((c: any) => c.id === courseId);
           if (found) {
             setCourse(found);
-            // Set first lesson as default if not already set
-            if (found.modules?.length > 0 && found.modules[0].lessons?.length > 0) {
+            // Default to first lesson of first module
+            if (found.modules?.[0]?.lessons?.length > 0) {
               setCurrentLesson(found.modules[0].lessons[0]);
             }
           }
@@ -50,12 +50,16 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
     fetchCourseData();
   }, [courseId]);
 
-  // Debug video URL changes
   useEffect(() => {
-    if (currentLesson?.videoUrl) {
-      console.log("Current Lesson Video URL:", currentLesson.videoUrl);
+    if (currentLesson) {
+      console.log("Current Lesson Updated:", currentLesson.title, "URL:", currentLesson.videoUrl);
     }
   }, [currentLesson]);
+
+  const handleCompleteLesson = () => {
+    // Logic for marking complete can be added here
+    alert("Great job! Lesson marked as complete.");
+  };
 
   if (loading) {
     return (
@@ -77,13 +81,6 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
     );
   }
 
-  // Helper to ensure video URL is usable
-  const getVideoSrc = (url: string) => {
-    if (!url) return "";
-    if (url.startsWith('http') || url.startsWith('/')) return url;
-    return `/${url}`;
-  };
-
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -93,7 +90,7 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
           </Link>
         </Button>
         <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground hidden sm:inline">You are learning:</span>
+            <span className="text-sm font-medium text-muted-foreground hidden sm:inline">Course:</span>
             <span className="text-sm font-black text-primary bg-primary/5 px-3 py-1 rounded-full">{course.title}</span>
         </div>
       </div>
@@ -109,9 +106,8 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
                   controls 
                   className="w-full h-full"
                   poster={course.thumbnailUrl}
-                  autoPlay={false}
                 >
-                  <source src={getVideoSrc(currentLesson.videoUrl)} type="video/mp4" />
+                  <source src={currentLesson.videoUrl} type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
               ) : (
@@ -121,7 +117,7 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
                   </div>
                   <div className="space-y-1">
                     <p className="text-white text-lg font-bold">No video for this lesson</p>
-                    <p className="text-gray-400 text-sm">Please check the lesson notes or proceed to the next step.</p>
+                    <p className="text-gray-400 text-sm">Review the notes below or move to the next lesson.</p>
                   </div>
                 </div>
               )}
@@ -136,12 +132,14 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
                     <div className="flex items-center gap-1.5">
                       <Clock className="h-4 w-4" /> {currentLesson?.duration || "5:00"}
                     </div>
-                    <div className="flex items-center gap-1.5 text-primary">
-                      <Video className="h-4 w-4" /> Video Tutorial
-                    </div>
+                    {currentLesson?.videoUrl && (
+                      <div className="flex items-center gap-1.5 text-primary">
+                        <Video className="h-4 w-4" /> Video Tutorial
+                      </div>
+                    )}
                   </div>
                 </div>
-                <Button size="lg" className="font-bold gap-2 shadow-xl h-12 px-8">
+                <Button size="lg" className="font-bold gap-2 shadow-xl h-12 px-8" onClick={handleCompleteLesson}>
                   Complete Lesson <CheckCircle2 className="h-5 w-5" />
                 </Button>
               </div>
@@ -149,7 +147,7 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
               <div className="prose prose-neutral dark:prose-invert max-w-none">
                 <h3 className="text-xl font-black mb-4">Lesson Overview</h3>
                 <p className="text-muted-foreground leading-relaxed text-lg whitespace-pre-wrap">
-                  {currentLesson?.description || "In this lesson, we dive deep into the core concepts of this module. Follow along with the video and take notes on the key patterns demonstrated."}
+                  {currentLesson?.description || "In this lesson, we cover key concepts and practical applications. Follow the video and apply the steps in your own environment."}
                 </p>
               </div>
             </CardContent>
@@ -162,13 +160,13 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
             <CardHeader className="border-b bg-muted/20">
               <CardTitle className="text-lg font-black flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
-                Course Curriculum
+                Curriculum
               </CardTitle>
             </CardHeader>
             <ScrollArea className="flex-1">
               <div className="p-4 space-y-8 py-6">
-                {course.modules?.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-10 italic">No curriculum available yet.</p>
+                {!course.modules || course.modules.length === 0 ? (
+                  <p className="text-center text-sm text-muted-foreground py-10 italic">No content available.</p>
                 ) : (
                   course.modules.map((module: any, mIdx: number) => (
                     <div key={module.id} className="space-y-4">
@@ -200,9 +198,6 @@ export default function LearningPage({ params }: { params: Promise<{ courseId: s
                             </div>
                           </button>
                         ))}
-                        {module.lessons?.length === 0 && (
-                          <p className="text-xs text-muted-foreground italic pl-2">No lessons in this module.</p>
-                        )}
                       </div>
                     </div>
                   ))
