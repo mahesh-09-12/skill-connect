@@ -104,7 +104,7 @@ Community
 | Action            | Coins |
 | ----------------- | ----- |
 | Signup Bonus      | +100  |
-| Daily Reward      | +50   |
+| Daily Reward      | +25   |
 | Course Enrollment | -X    |
 | Course Earnings   | +X    |
 
