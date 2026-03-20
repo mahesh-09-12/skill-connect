@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 /**
  * @fileOverview Fetches transaction history for the authenticated user.
  * Includes fallback logic to create a Signup Bonus if user has coins but no history.
+ * Uses safe ordering to prevent crashes on missing timestamp columns.
  */
 
 export async function GET(req: NextRequest) {
@@ -18,6 +19,7 @@ export async function GET(req: NextRequest) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: string };
     const userId = decoded.userId;
 
+    // Fetch transactions using ID for order as a safe fallback if createdAt is inconsistent
     let transactions = await prisma.coinTransaction.findMany({
       where: { userId },
       orderBy: { id: 'desc' },
@@ -52,7 +54,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(transactions);
   } catch (error: any) {
-    console.error('Wallet fetch error:', error);
+    console.error('Wallet history fetch error:', error);
     return NextResponse.json({ message: 'Failed to load transaction history' }, { status: 500 });
   }
 }

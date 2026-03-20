@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 
+/**
+ * @fileOverview Handles course enrollment with atomic coin transfers and transaction logging.
+ */
+
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('token')?.value;
 
@@ -55,60 +59,66 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Atomic transaction for enrollment and dual-sided coin transfer
-    const result = await prisma.$transaction([
+    // Atomic transaction for enrollment and dual-sided coin transfer + record keeping
+    const result = await prisma.$transaction(async (tx) => {
       // 1. Create Enrollment
-      prisma.enrollment.create({
+      const enrollment = await tx.enrollment.create({
         data: {
           userId: user.id,
           courseId: course.id,
           progress: 0,
         },
-      }),
+      });
+
       // 2. Deduct from Learner
-      prisma.user.update({
+      const updatedLearner = await tx.user.update({
         where: { id: user.id },
         data: {
           coinBalance: {
             decrement: course.priceInCoins,
           },
         },
-      }),
+      });
+
       // 3. Create Learner Transaction Record
-      prisma.coinTransaction.create({
+      await tx.coinTransaction.create({
         data: {
           userId: user.id,
           amount: -course.priceInCoins,
           type: 'SPEND',
           reason: `Enrolled in course: ${course.title}`,
         },
-      }),
+      });
+
       // 4. Pay Instructor (unless it's a free course)
-      ...(course.priceInCoins > 0 ? [
-        prisma.user.update({
+      if (course.priceInCoins > 0) {
+        await tx.user.update({
           where: { id: course.instructorId },
           data: {
             coinBalance: {
               increment: course.priceInCoins,
             },
           },
-        }),
-        prisma.coinTransaction.create({
+        });
+
+        await tx.coinTransaction.create({
           data: {
             userId: course.instructorId,
             amount: course.priceInCoins,
             type: 'EARN',
             reason: `Sold course: ${course.title}`,
           },
-        })
-      ] : [])
-    ]);
+        });
+      }
+
+      return { enrollment, updatedLearner };
+    });
 
     return NextResponse.json({ 
       success: true, 
       message: 'Successfully enrolled!', 
-      enrollment: result[0],
-      newBalance: result[1].coinBalance 
+      enrollment: result.enrollment,
+      newBalance: result.updatedLearner.coinBalance 
     });
   } catch (error: any) {
     console.error('Enrollment error:', error);

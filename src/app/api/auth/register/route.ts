@@ -12,8 +12,7 @@ const registerSchema = z.object({
 });
 
 /**
- * @fileOverview Handles user registration.
- * Now creates a SIGNUP_BONUS transaction record during account creation.
+ * @fileOverview Handles user registration and ensures atomic balance + transaction creation.
  */
 
 export async function POST(req: NextRequest) {
