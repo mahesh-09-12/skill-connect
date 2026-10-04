@@ -220,7 +220,7 @@ MIT License
 
 ## 👤 Author
 
-Built with ❤️ by **WT Project Team**
+Built with ❤️ by **Mahesh**
 
 ---
 
